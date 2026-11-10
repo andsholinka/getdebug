@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jangan Typo! — Game Tara Tech</title>
   <meta name="description" content="Jangan Typo! Game ketik dari Tara Tech. Balas chat dengan tepat sebelum waktu habis — satu huruf salah, kirim terkunci!" />
+  <meta name="theme-color" content="#0b1526" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Arcade" />
   <style>
     :root {
       --navy: #0f1e33;
@@ -134,7 +141,7 @@
 
     <footer>
       Dibuat oleh <a href="https://taratech.web.id" target="_blank" rel="noopener">Tara Tech</a> — jasa pembuatan website.
-      Game lain: <a href="/">Tangkap Bug! 🐛</a>
+      Lihat semua game: <a href="/">Tara Tech Arcade</a> · Game lain: <a href="/tangkap-bug/">Tangkap Bug! 🐛</a>
     </footer>
   </div>
 
@@ -418,6 +425,9 @@
     });
 
     loadLevel();
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) { navigator.serviceWorker.register("/sw.js").catch(function () {}); }
   </script>
 </body>
 </html>
