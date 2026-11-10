@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tangkap Bug! — Game Tara Tech</title>
+  <meta name="description" content="Tangkap Bug! Game interaktif dari Tara Tech. Seberapa cepat kamu bisa menangkap bug sebelum waktu habis?" />
+  <style>
+    :root {
+      --navy: #0f1e33;
+      --navy-2: #16294a;
+      --accent: #2f7bff;
+      --gold: #ffc531;
+      --danger: #ff4d5e;
+      --bg: #0b1526;
+      --card: #13233f;
+      --line: #22385c;
+      --text: #eef3fa;
+      --muted: #93a5bd;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .wrap { width: 100%; max-width: 560px; padding: 20px 16px 32px; }
+
+    header { text-align: center; margin: 12px 0 20px; }
+    .brand { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+    .brand b { color: var(--accent); }
+    h1 { font-size: 40px; letter-spacing: -1px; margin: 6px 0 4px; }
+    h1 span { color: var(--gold); }
+    .tagline { color: var(--muted); font-size: 15px; }
+
+    .hud {
+      display: flex; gap: 10px; margin-bottom: 14px;
+    }
+    .stat {
+      flex: 1; background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 10px 12px; text-align: center;
+    }
+    .stat small { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .stat b { font-size: 24px; }
+    .stat.best b { color: var(--gold); }
+
+    .timer-bar { height: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+    .timer-fill { height: 100%; width: 100%; background: var(--accent); transition: width 0.2s linear; }
+    .timer-fill.low { background: var(--danger); }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      touch-action: manipulation; user-select: none;
+    }
+    .hole {
+      aspect-ratio: 1; background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 52px; cursor: pointer; position: relative; overflow: hidden;
+      transition: transform 0.08s ease, border-color 0.15s ease;
+    }
+    .hole:active { transform: scale(0.94); }
+    .hole .emoji {
+      transform: translateY(120%) scale(0.6); opacity: 0;
+      transition: transform 0.18s ease, opacity 0.15s ease;
+      pointer-events: none;
+    }
+    .hole.up .emoji { transform: translateY(0) scale(1); opacity: 1; }
+    .hole.up { border-color: var(--accent); }
+    .hole.up.gold { border-color: var(--gold); }
+    .hole.up.bad { border-color: var(--danger); }
+    .hole .pop {
+      position: absolute; font-size: 20px; font-weight: 800; color: var(--gold);
+      animation: floatUp 0.7s ease forwards; pointer-events: none;
+    }
+    .hole .pop.neg { color: var(--danger); }
+    @keyframes floatUp {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-34px); }
+    }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(5, 10, 20, 0.82);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; z-index: 10;
+    }
+    .overlay.hidden { display: none; }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+      padding: 32px 28px; max-width: 440px; width: 100%; text-align: center;
+    }
+    .panel h2 { font-size: 28px; margin-bottom: 10px; }
+    .panel p { color: var(--muted); font-size: 15px; margin-bottom: 10px; }
+    .panel .rules { text-align: left; margin: 16px auto 20px; max-width: 320px; font-size: 15px; line-height: 1.9; }
+    .panel .rules b { color: var(--text); }
+    .big-score { font-size: 56px; font-weight: 800; color: var(--gold); line-height: 1; margin: 8px 0 4px; }
+    .btn {
+      display: inline-block; padding: 13px 28px; border-radius: 999px;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 16px;
+      border: none; cursor: pointer; transition: transform 0.12s ease, opacity 0.12s ease;
+    }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-gold { background: var(--gold); color: #231a00; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+
+    footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: 13px; }
+    footer a { color: var(--accent); }
+    .streak {
+      text-align: center; font-size: 14px; font-weight: 700; color: var(--gold);
+      min-height: 22px; margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Tara <b>Tech</b> Arcade</div>
+      <h1>Tangkap <span>Bug!</span> 🐛</h1>
+      <p class="tagline">Bug-nya muncul di server. Tangkap sebanyak-banyaknya sebelum waktu habis!</p>
+    </header>
+
+    <div class="hud">
+      <div class="stat"><small>Skor</small><b id="score">0</b></div>
+      <div class="stat"><small>Waktu</small><b id="time">30</b></div>
+      <div class="stat best"><small>Terbaik</small><b id="best">0</b></div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="streak" id="streak"></div>
+
+    <div class="grid" id="grid"></div>
+
+    <footer>
+      Dibuat oleh <a href="https://taratech.web.id" target="_blank" rel="noopener">Tara Tech</a> — jasa pembuatan website.
+      Skor terbaikmu tersimpan di browser ini.
+    </footer>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <h2>Tangkap Bug! 🐛</h2>
+      <p>Server Tara Tech diserang bug. Kamu punya <b>30 detik</b> untuk menangkap sebanyak mungkin.</p>
+      <div class="rules">
+        <div>🐛 Bug biasa = <b>+1 poin</b></div>
+        <div>⭐ Bug emas = <b>+5 poin</b> (jarang muncul!)</div>
+        <div>💥 Virus merah = <b>−2 poin</b>, jangan dipencet!</div>
+        <div>⚡ Makin banyak tangkapan, bug muncul makin cepat.</div>
+      </div>
+      <button class="btn btn-gold" id="startBtn">Mulai Main</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="panel">
+      <h2>Waktu Habis! ⏰</h2>
+      <p>Skor akhir kamu:</p>
+      <div class="big-score" id="finalScore">0</div>
+      <p id="endMessage"></p>
+      <p id="newBest" style="color: var(--gold); font-weight: 700;"></p>
+      <div class="btn-row">
+        <button class="btn btn-gold" id="againBtn">Main Lagi</button>
+        <button class="btn" id="shareBtn">Bagikan Skor</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var GAME_TIME = 30;
+    var grid = document.getElementById("grid");
+    var scoreEl = document.getElementById("score");
+    var timeEl = document.getElementById("time");
+    var bestEl = document.getElementById("best");
+    var timerFill = document.getElementById("timerFill");
+    var streakEl = document.getElementById("streak");
+    var startOverlay = document.getElementById("startOverlay");
+    var endOverlay = document.getElementById("endOverlay");
+    var finalScoreEl = document.getElementById("finalScore");
+    var endMessageEl = document.getElementById("endMessage");
+    var newBestEl = document.getElementById("newBest");
+
+    var holes = [];
+    for (var i = 0; i < 9; i++) {
+      var hole = document.createElement("div");
+      hole.className = "hole";
+      hole.innerHTML = '<span class="emoji"></span>';
+      hole.addEventListener("pointerdown", onHoleHit);
+      grid.appendChild(hole);
+      holes.push(hole);
+    }
+
+    var score = 0, timeLeft = GAME_TIME, streak = 0;
+    var best = parseInt(localStorage.getItem("tangkapBugBest") || "0", 10);
+    bestEl.textContent = best;
+
+    var spawnTimer = null, tickTimer = null, playing = false, activeHole = -1;
+
+    function randomHole() {
+      var idx;
+      do { idx = Math.floor(Math.random() * holes.length); } while (idx === activeHole);
+      return idx;
+    }
+
+    function spawnDelay() {
+      // Makin tinggi skor, makin cepat bug muncul (minimal 350ms).
+      return Math.max(350, 850 - score * 12);
+    }
+
+    function spawn() {
+      if (!playing) return;
+      if (activeHole >= 0) {
+        holes[activeHole].classList.remove("up", "gold", "bad");
+        holes[activeHole].querySelector(".emoji").textContent = "";
+      }
+      var idx = randomHole();
+      var hole = holes[idx];
+      var roll = Math.random();
+      var emoji, kind;
+      if (roll < 0.12) { emoji = "⭐"; kind = "gold"; }
+      else if (roll < 0.30) { emoji = "💥"; kind = "bad"; }
+      else { emoji = "🐛"; kind = "bug"; }
+      hole.dataset.kind = kind;
+      hole.querySelector(".emoji").textContent = emoji;
+      hole.classList.add("up", kind);
+      activeHole = idx;
+      spawnTimer = setTimeout(spawn, spawnDelay());
+    }
+
+    function popText(hole, text, neg) {
+      var pop = document.createElement("span");
+      pop.className = "pop" + (neg ? " neg" : "");
+      pop.textContent = text;
+      hole.appendChild(pop);
+      setTimeout(function () { pop.remove(); }, 700);
+    }
+
+    function onHoleHit(e) {
+      if (!playing) return;
+      var hole = e.currentTarget;
+      if (!hole.classList.contains("up")) {
+        streak = 0;
+        streakEl.textContent = "";
+        return;
+      }
+      var kind = hole.dataset.kind;
+      if (kind === "gold") { score += 5; streak++; popText(hole, "+5"); }
+      else if (kind === "bad") { score = Math.max(0, score - 2); streak = 0; popText(hole, "−2", true); }
+      else { score += 1; streak++; popText(hole, "+1"); }
+      scoreEl.textContent = score;
+      if (streak >= 5) { streakEl.textContent = "🔥 " + streak + "x beruntun!"; }
+      else { streakEl.textContent = ""; }
+      hole.classList.remove("up", "gold", "bad");
+      hole.querySelector(".emoji").textContent = "";
+      activeHole = -1;
+      clearTimeout(spawnTimer);
+      spawnTimer = setTimeout(spawn, 120);
+    }
+
+    function tick() {
+      timeLeft -= 1;
+      timeEl.textContent = timeLeft;
+      timerFill.style.width = (timeLeft / GAME_TIME * 100) + "%";
+      timerFill.classList.toggle("low", timeLeft <= 5);
+      if (timeLeft <= 0) endGame();
+    }
+
+    function startGame() {
+      score = 0; timeLeft = GAME_TIME; streak = 0;
+      scoreEl.textContent = "0";
+      timeEl.textContent = GAME_TIME;
+      streakEl.textContent = "";
+      timerFill.style.width = "100%";
+      timerFill.classList.remove("low");
+      startOverlay.classList.add("hidden");
+      endOverlay.classList.add("hidden");
+      playing = true;
+      spawn();
+      tickTimer = setInterval(tick, 1000);
+    }
+
+    function endGame() {
+      playing = false;
+      clearInterval(tickTimer);
+      clearTimeout(spawnTimer);
+      if (activeHole >= 0) {
+        holes[activeHole].classList.remove("up", "gold", "bad");
+        holes[activeHole].querySelector(".emoji").textContent = "";
+        activeHole = -1;
+      }
+      finalScoreEl.textContent = score;
+      var isBest = score > best;
+      if (isBest) {
+        best = score;
+        localStorage.setItem("tangkapBugBest", String(best));
+        bestEl.textContent = best;
+        newBestEl.textContent = "🎉 Rekor baru! Kamu pemburu bug terbaik!";
+      } else {
+        newBestEl.textContent = "";
+      }
+      if (score >= 40) endMessageEl.textContent = "Gila, jago banget! Server aman berkat kamu.";
+      else if (score >= 25) endMessageEl.textContent = "Lumayan! Sedikit lagi jadi legenda.";
+      else if (score >= 12) endMessageEl.textContent = "Bagus, tapi bug-nya masih banyak yang lolos.";
+      else endMessageEl.textContent = "Bug-nya kabur semua... coba lagi, pasti bisa!";
+      endOverlay.classList.remove("hidden");
+    }
+
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("againBtn").addEventListener("click", startGame);
+    document.getElementById("shareBtn").addEventListener("click", function () {
+      var text = "Aku dapat skor " + score + " di game Tangkap Bug! dari Tara Tech. Berani coba kalahin aku? " + window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: "Tangkap Bug! — Tara Tech", text: text }).catch(function () {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          document.getElementById("shareBtn").textContent = "Disalin!";
+          setTimeout(function () { document.getElementById("shareBtn").textContent = "Bagikan Skor"; }, 2000);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
