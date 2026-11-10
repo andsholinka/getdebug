@@ -1,14 +1,22 @@
-# Tangkap Bug! — Game Tara Tech
+# GetDebug — Game Tara Tech
 
-Game interaktif dari Tara Tech. Satu halaman statis (HTML + CSS + JavaScript),
-tanpa framework dan tanpa build step, jadi bisa langsung di-deploy ke mana saja.
+Kumpulan game interaktif dari Tara Tech. Satu halaman statis per game
+(HTML + CSS + JavaScript), tanpa framework dan tanpa build step, jadi bisa
+langsung di-deploy ke mana saja.
 
-## Cara main
+## Game
 
-- Buka `index.html` di browser.
-- Tekan **Mulai Main**, lalu tangkap bug yang muncul di grid selama 30 detik.
+### Tangkap Bug! (`index.html`)
+Whack-a-mole: tangkap bug yang muncul di grid selama 30 detik.
 - 🐛 Bug biasa = +1 poin, ⭐ Bug emas = +5 poin, 💥 Virus merah = −2 poin.
 - Makin banyak tangkapan, bug muncul makin cepat. Skor terbaik tersimpan di browser.
+
+### Jangan Typo! (`jangan-typo/index.html`)
+Game ketik: balas chat dari 12 orang (Ibu, Bapak, gebetan, dosen killer,
+bos, sampai hantu kos) dengan mengetik balasan persis sebelum waktu habis.
+- Huruf salah jadi merah dan tombol kirim terkunci sampai dibetulkan.
+- Waktu habis = kehilangan 1 nyawa (3 nyawa). Makin cepat kirim, makin
+  besar bonus waktu. Skor terbaik tersimpan di browser.
 
 ## Menjalankan lokal
 

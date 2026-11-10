@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jangan Typo! — Game Tara Tech</title>
+  <meta name="description" content="Jangan Typo! Game ketik dari Tara Tech. Balas chat dengan tepat sebelum waktu habis — satu huruf salah, kirim terkunci!" />
+  <style>
+    :root {
+      --navy: #0f1e33;
+      --accent: #2f7bff;
+      --gold: #ffc531;
+      --danger: #ff4d5e;
+      --green: #3ddc84;
+      --bg: #0b1526;
+      --card: #13233f;
+      --line: #22385c;
+      --text: #eef3fa;
+      --muted: #93a5bd;
+      --bubble-in: #1c3358;
+      --bubble-out: #1d4ed8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .wrap { width: 100%; max-width: 560px; padding: 20px 16px 32px; }
+
+    header { text-align: center; margin: 12px 0 16px; }
+    .brand { font-size: 14px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+    .brand b { color: var(--accent); }
+    h1 { font-size: 40px; letter-spacing: -1px; margin: 6px 0 4px; }
+    h1 span { color: var(--gold); }
+    .tagline { color: var(--muted); font-size: 15px; }
+
+    .hud { display: flex; gap: 10px; margin-bottom: 14px; }
+    .stat { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; text-align: center; }
+    .stat small { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .stat b { font-size: 24px; }
+    .stat.best b { color: var(--gold); }
+    .stat.lives b { color: var(--danger); }
+
+    .timer-bar { height: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+    .timer-fill { height: 100%; width: 100%; background: var(--accent); transition: width 0.1s linear; }
+    .timer-fill.low { background: var(--danger); }
+
+    .chat { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 16px; }
+    .chat-head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .chat-head .who b { display: block; font-size: 16px; }
+    .chat-head .who small { color: var(--green); font-size: 12px; }
+    .chat-head .lvl { margin-left: auto; background: var(--navy); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+
+    .bubble { max-width: 88%; padding: 11px 14px; border-radius: 16px; font-size: 16px; line-height: 1.45; margin-bottom: 12px; }
+    .bubble.in { background: var(--bubble-in); border-bottom-left-radius: 4px; }
+    .bubble .sender { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; font-weight: 700; }
+
+    .target-label { font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+    .target {
+      background: var(--navy); border: 1px dashed var(--line); border-radius: 14px;
+      padding: 14px; font-size: 19px; line-height: 1.8; word-break: break-word;
+      min-height: 76px;
+    }
+    .target .ch { color: var(--muted); }
+    .target .ch.done { color: var(--text); }
+    .target .ch.wrong { color: var(--danger); background: rgba(255, 77, 94, 0.15); border-radius: 4px; }
+    .target .ch.extra { color: var(--danger); background: rgba(255, 77, 94, 0.25); border-radius: 4px; }
+    .target .ch.cursor { border-bottom: 2px solid var(--gold); }
+
+    .composer { display: flex; gap: 8px; margin-top: 14px; }
+    .composer input {
+      flex: 1; background: var(--navy); border: 1px solid var(--line); color: var(--text);
+      border-radius: 999px; padding: 13px 16px; font-size: 16px; outline: none;
+    }
+    .composer input:focus { border-color: var(--accent); }
+    .composer input.shake { animation: shake 0.3s ease; border-color: var(--danger); }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .btn {
+      padding: 13px 20px; border-radius: 999px; background: var(--accent); color: #fff;
+      font-weight: 700; font-size: 15px; border: none; cursor: pointer;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-gold { background: var(--gold); color: #231a00; }
+    .hint { text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 18px; }
+    .hint.bad { color: var(--danger); font-weight: 700; }
+
+    .overlay { position: fixed; inset: 0; background: rgba(5, 10, 20, 0.85); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
+    .overlay.hidden { display: none; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 32px 28px; max-width: 440px; width: 100%; text-align: center; }
+    .panel h2 { font-size: 28px; margin-bottom: 10px; }
+    .panel p { color: var(--muted); font-size: 15px; margin-bottom: 10px; }
+    .panel .rules { text-align: left; margin: 16px auto 20px; max-width: 330px; font-size: 15px; line-height: 1.9; }
+    .panel .rules b { color: var(--text); }
+    .big-score { font-size: 56px; font-weight: 800; color: var(--gold); line-height: 1; margin: 8px 0 4px; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+
+    footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: 13px; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Tara <b>Tech</b> Arcade</div>
+      <h1>Jangan <span>Typo!</span> ⌨️</h1>
+      <p class="tagline">Satu huruf salah, hidupmu berantakan. Balas chatnya sebelum waktu habis!</p>
+    </header>
+
+    <div class="hud">
+      <div class="stat"><small>Skor</small><b id="score">0</b></div>
+      <div class="stat"><small>Level</small><b id="level">1/12</b></div>
+      <div class="stat lives"><small>Nyawa</small><b id="lives">❤❤❤</b></div>
+      <div class="stat best"><small>Terbaik</small><b id="best">0</b></div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+
+    <div class="chat" id="chatBox">
+      <div class="chat-head">
+        <div class="avatar" id="avatar">👩</div>
+        <div class="who"><b id="whoName">Ibu</b><small>● online</small></div>
+        <div class="lvl" id="levelTag">Level 1</div>
+      </div>
+      <div class="bubble in"><span class="sender" id="senderName">Ibu</span><span id="incoming">Nak, tolong beliin gula di warung ya</span></div>
+      <div class="target-label">Balas persis seperti ini (abu-abu = belum diketik):</div>
+      <div class="target" id="target"></div>
+      <div class="composer">
+        <input id="input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ketik balasanmu di sini..." />
+        <button class="btn" id="sendBtn" disabled>Kirim ➤</button>
+      </div>
+      <div class="hint" id="hint">Huruf salah jadi merah dan kirim terkunci. Hapus dulu, baru bisa kirim.</div>
+    </div>
+
+    <footer>
+      Dibuat oleh <a href="https://taratech.web.id" target="_blank" rel="noopener">Tara Tech</a> — jasa pembuatan website.
+      Game lain: <a href="/">Tangkap Bug! 🐛</a>
+    </footer>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <h2>Jangan Typo! ⌨️</h2>
+      <p>Balas chat dari 12 orang — dari Ibu sampai hantu kos — sebelum waktu habis.</p>
+      <div class="rules">
+        <div>💬 Ketik balasan <b>persis</b> seperti teks abu-abu.</div>
+        <div>🔴 Huruf salah jadi <b>merah</b> dan tombol kirim <b>terkunci</b>.</div>
+        <div>⏰ Waktu habis = <b>kehilangan 1 nyawa</b>. Nyawa habis, game over.</div>
+        <div>⚡ Makin cepat kirim, makin besar <b>bonus waktu</b>.</div>
+      </div>
+      <button class="btn btn-gold" id="startBtn">Mulai Main</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="levelOverlay">
+    <div class="panel">
+      <h2 id="levelTitle">LEVEL BERES! 🎉</h2>
+      <p id="levelText"></p>
+      <div class="big-score" id="levelPoints">+0</div>
+      <p id="levelSub"></p>
+      <div class="btn-row">
+        <button class="btn btn-gold" id="nextBtn">Lanjut ➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="panel">
+      <h2 id="endTitle">SELESAI! 🏆</h2>
+      <p id="endText"></p>
+      <div class="big-score" id="finalScore">0</div>
+      <p id="endStats"></p>
+      <p id="newBest" style="color: var(--gold); font-weight: 700;"></p>
+      <div class="btn-row">
+        <button class="btn btn-gold" id="againBtn">Main Lagi</button>
+        <button class="btn" id="shareBtn">Bagikan Skor</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var LEVELS = [
+      { who: "Ibu", avatar: "👩", incoming: "Nak, tolong beliin gula di warung ya", reply: "iya bu, bentar lagi berangkat", time: 25 },
+      { who: "Bapak", avatar: "👨", incoming: "Pulang jam berapa? Jangan lupa beli gas", reply: "pulang jam 6 pak, gasnya sekalian dibeliin", time: 25 },
+      { who: "Gebetan", avatar: "😍", incoming: "lagi apa? kok balesnya lama banget sih", reply: "lagi makan, maaf ya baru buka hp", time: 25 },
+      { who: "Dosen Killer", avatar: "👨‍🏫", incoming: "Tugas dikumpul besok jam 8 pagi, tidak ada toleransi", reply: "baik pak, tugasnya sudah saya kerjakan", time: 25 },
+      { who: "Bos", avatar: "🤵", incoming: "Laporan bulanannya mana? Ditunggu jam 3 sore ini", reply: "siap pak, laporannya lagi saya finalisasi", time: 22 },
+      { who: "Hantu Kos", avatar: "👻", incoming: "kosongin kamar 7 sebelum tengah malam", reply: "ampun, saya pindah besok pagi", time: 22 },
+      { who: "Teman", avatar: "🧑", incoming: "bro, nugas bareng di perpus jam 2 ya", reply: "oke, gue bawa laptop sama charger", time: 22 },
+      { who: "Ibu", avatar: "👩", incoming: "Kapan pulang kampung? Bapak kangen", reply: "bulan depan bu, pas libur semester", time: 20 },
+      { who: "Klien", avatar: "💼", incoming: "Revisi logonya ditunggu hari ini, jangan telat", reply: "siap kak, revisinya dikirim sebelum magrib", time: 20 },
+      { who: "Gebetan", avatar: "😍", incoming: "kamu suka aku nggak sih? jawab jujur", reply: "suka banget, dari dulu cuma berani liatin", time: 20 },
+      { who: "Dosen Killer", avatar: "👨‍🏫", incoming: "Kenapa absen kemarin? Saya tunggu penjelasanmu", reply: "maaf pak, kemarin saya sakit dan ada surat dokter", time: 18 },
+      { who: "Bos", avatar: "🤵", incoming: "Presentasi ke klien jam 9 pagi, jangan sampai ada typo di slide", reply: "siap pak, slide sudah dicek tiga kali", time: 18 }
+    ];
+
+    var scoreEl = document.getElementById("score");
+    var levelEl = document.getElementById("level");
+    var livesEl = document.getElementById("lives");
+    var bestEl = document.getElementById("best");
+    var timerFill = document.getElementById("timerFill");
+    var targetEl = document.getElementById("target");
+    var inputEl = document.getElementById("input");
+    var sendBtn = document.getElementById("sendBtn");
+    var hintEl = document.getElementById("hint");
+    var startOverlay = document.getElementById("startOverlay");
+    var levelOverlay = document.getElementById("levelOverlay");
+    var endOverlay = document.getElementById("endOverlay");
+
+    var levelIndex = 0, score = 0, lives = 3, typos = 0, levelsDone = 0;
+    var timeLeft = 0, timeTotal = 1, timerId = null, playing = false;
+    var best = parseInt(localStorage.getItem("janganTypoBest") || "0", 10);
+    bestEl.textContent = best;
+
+    function hearts(n) { return "❤".repeat(n) + "🖤".repeat(Math.max(0, 3 - n)); }
+
+    function renderTarget() {
+      var target = LEVELS[levelIndex].reply;
+      var typed = inputEl.value;
+      var html = "";
+      for (var i = 0; i < target.length; i++) {
+        var cls = "ch";
+        if (i < typed.length) {
+          cls += typed[i] === target[i] ? " done" : " wrong";
+        }
+        if (i === typed.length) cls += " cursor";
+        html += '<span class="' + cls + '">' + escapeHtml(target[i]) + "</span>";
+      }
+      for (var j = target.length; j < typed.length; j++) {
+        html += '<span class="ch extra">' + escapeHtml(typed[j]) + "</span>";
+      }
+      targetEl.innerHTML = html;
+    }
+
+    function escapeHtml(c) {
+      return c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === " " ? "&nbsp;" : c;
+    }
+
+    function loadLevel() {
+      var lv = LEVELS[levelIndex];
+      document.getElementById("whoName").textContent = lv.who;
+      document.getElementById("senderName").textContent = lv.who;
+      document.getElementById("avatar").textContent = lv.avatar;
+      document.getElementById("incoming").textContent = lv.incoming;
+      document.getElementById("levelTag").textContent = "Level " + (levelIndex + 1);
+      levelEl.textContent = (levelIndex + 1) + "/" + LEVELS.length;
+      livesEl.textContent = hearts(lives);
+      inputEl.value = "";
+      inputEl.dataset.len = "0";
+      inputEl.disabled = false;
+      sendBtn.disabled = true;
+      hintEl.textContent = "Huruf salah jadi merah dan kirim terkunci. Hapus dulu, baru bisa kirim.";
+      hintEl.classList.remove("bad");
+      timeTotal = lv.time;
+      timeLeft = lv.time;
+      updateTimer();
+      renderTarget();
+      inputEl.focus();
+    }
+
+    function updateTimer() {
+      timerFill.style.width = (timeLeft / timeTotal * 100) + "%";
+      timerFill.classList.toggle("low", timeLeft <= 5);
+    }
+
+    function tick() {
+      timeLeft = Math.max(0, +(timeLeft - 0.1).toFixed(2));
+      updateTimer();
+      if (timeLeft <= 0) failLevel();
+    }
+
+    function startTimer() {
+      clearInterval(timerId);
+      timerId = setInterval(tick, 100);
+    }
+
+    function stopTimer() { clearInterval(timerId); }
+
+    function startGame() {
+      levelIndex = 0; score = 0; lives = 3; typos = 0; levelsDone = 0;
+      scoreEl.textContent = "0";
+      startOverlay.classList.add("hidden");
+      endOverlay.classList.add("hidden");
+      levelOverlay.classList.add("hidden");
+      playing = true;
+      loadLevel();
+      startTimer();
+    }
+
+    function failLevel() {
+      stopTimer();
+      playing = false;
+      lives -= 1;
+      livesEl.textContent = hearts(Math.max(0, lives));
+      inputEl.disabled = true;
+      if (lives <= 0) {
+        showEnd(false);
+      } else {
+        document.getElementById("levelTitle").textContent = "TELAT! 😱";
+        document.getElementById("levelText").textContent = "Waktu habis. " + LEVELS[levelIndex].who + " sudah keburu kesel. Nyawa tersisa: " + lives + ".";
+        document.getElementById("levelPoints").textContent = "−1 ❤";
+        document.getElementById("levelSub").textContent = "Coba lagi level ini, lebih cepat!";
+        document.getElementById("nextBtn").textContent = "Coba Lagi ↻";
+        levelOverlay.classList.remove("hidden");
+      }
+    }
+
+    function sendReply() {
+      var lv = LEVELS[levelIndex];
+      if (inputEl.value !== lv.reply) {
+        inputEl.classList.remove("shake");
+        void inputEl.offsetWidth;
+        inputEl.classList.add("shake");
+        hintEl.textContent = "Masih ada huruf yang salah. Betulkan dulu!";
+        hintEl.classList.add("bad");
+        return;
+      }
+      stopTimer();
+      playing = false;
+      var earned = 100 + Math.round(timeLeft) * 10;
+      score += earned;
+      levelsDone += 1;
+      scoreEl.textContent = score;
+      inputEl.disabled = true;
+      document.getElementById("levelTitle").textContent = "LEVEL BERES! 🎉";
+      document.getElementById("levelText").textContent = "Balasan ke " + lv.who + " terkirim tepat waktu.";
+      document.getElementById("levelPoints").textContent = "+" + earned;
+      document.getElementById("levelSub").textContent = "Bonus waktu: " + Math.round(timeLeft) + " detik tersisa.";
+      document.getElementById("nextBtn").textContent = levelIndex + 1 >= LEVELS.length ? "Lihat Hasil 🏆" : "Lanjut ➤";
+      levelOverlay.classList.remove("hidden");
+    }
+
+    function nextLevel() {
+      levelOverlay.classList.add("hidden");
+      if (lives <= 0) { showEnd(false); return; }
+      if (document.getElementById("nextBtn").textContent.indexOf("Hasil") >= 0) { showEnd(true); return; }
+      if (playing === false && lives < 3 && document.getElementById("levelTitle").textContent.indexOf("TELAT") === 0) {
+        // retry level yang sama setelah gagal
+      } else {
+        levelIndex += 1;
+      }
+      if (levelIndex >= LEVELS.length) { showEnd(true); return; }
+      playing = true;
+      loadLevel();
+      startTimer();
+    }
+
+    function showEnd(won) {
+      stopTimer();
+      playing = false;
+      inputEl.disabled = true;
+      levelOverlay.classList.add("hidden");
+      document.getElementById("endTitle").textContent = won ? "SELESAI! 🏆" : "GAME OVER 😵";
+      document.getElementById("endText").textContent = won
+        ? "Semua 12 chat terbalas tanpa typo fatal. Kamu resmi anti-typo!"
+        : "Nyawamu habis. " + LEVELS[levelIndex].who + " sudah tidak mau membalas chatmu lagi.";
+      document.getElementById("finalScore").textContent = score;
+      document.getElementById("endStats").textContent = "Level selesai: " + levelsDone + "/" + LEVELS.length + " · Total typo: " + typos;
+      var isBest = score > best;
+      if (isBest) {
+        best = score;
+        localStorage.setItem("janganTypoBest", String(best));
+        bestEl.textContent = best;
+        document.getElementById("newBest").textContent = "🎉 Rekor baru! Kamu pengetik tercepat!";
+      } else {
+        document.getElementById("newBest").textContent = "";
+      }
+      endOverlay.classList.remove("hidden");
+    }
+
+    inputEl.addEventListener("input", function () {
+      var lv = LEVELS[levelIndex];
+      var typed = inputEl.value;
+      var prevLen = inputEl.dataset.len ? parseInt(inputEl.dataset.len, 10) : 0;
+      if (typed.length > prevLen) {
+        var pos = typed.length - 1;
+        if (pos >= lv.reply.length || typed[pos] !== lv.reply[pos]) typos += 1;
+      }
+      inputEl.dataset.len = typed.length;
+      renderTarget();
+      var valid = typed === lv.reply;
+      sendBtn.disabled = !valid;
+      if (typed.length > 0 && !valid) {
+        var wrong = false;
+        for (var i = 0; i < typed.length; i++) {
+          if (i >= lv.reply.length || typed[i] !== lv.reply[i]) { wrong = true; break; }
+        }
+        hintEl.textContent = wrong ? "Ada huruf salah (merah). Hapus dulu biar bisa kirim." : "Lanjutkan, hampir benar!";
+        hintEl.classList.toggle("bad", wrong);
+      } else if (valid) {
+        hintEl.textContent = "Sempurna! Tekan Kirim atau Enter.";
+        hintEl.classList.remove("bad");
+      } else {
+        hintEl.textContent = "Huruf salah jadi merah dan kirim terkunci. Hapus dulu, baru bisa kirim.";
+        hintEl.classList.remove("bad");
+      }
+    });
+
+    inputEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); sendReply(); }
+    });
+
+    sendBtn.addEventListener("click", sendReply);
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("againBtn").addEventListener("click", startGame);
+    document.getElementById("nextBtn").addEventListener("click", nextLevel);
+    document.getElementById("chatBox").addEventListener("click", function () { inputEl.focus(); });
+    document.getElementById("shareBtn").addEventListener("click", function () {
+      var text = "Aku dapat skor " + score + " di game Jangan Typo! dari Tara Tech (level " + levelsDone + "/12, typo " + typos + "). Berani coba kalahin aku? " + window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: "Jangan Typo! — Tara Tech", text: text }).catch(function () {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          document.getElementById("shareBtn").textContent = "Disalin!";
+          setTimeout(function () { document.getElementById("shareBtn").textContent = "Bagikan Skor"; }, 2000);
+        });
+      }
+    });
+
+    loadLevel();
+  </script>
+</body>
+</html>
