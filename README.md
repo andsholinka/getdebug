@@ -10,6 +10,7 @@ langsung di-deploy ke mana saja.
   tombol install, dan cara install di HP.
 - `tangkap-bug/index.html` — game Tangkap Bug!
 - `jangan-typo/index.html` — game Jangan Typo!
+- `juragan-warung/index.html` — game Juragan Warung! (life simulator warung)
 - `manifest.webmanifest` + `sw.js` + `icons/` — dukungan PWA
   (bisa diinstall di HP, main offline).
 - `vendor/three/` — **Three.js 0.187.0** (ES module, di-vendor ke repo,
@@ -43,6 +44,20 @@ bos, sampai hantu kos) dengan mengetik balasan persis sebelum waktu habis.
 - Huruf salah jadi merah dan tombol kirim terkunci sampai dibetulkan.
 - Waktu habis = kehilangan 1 nyawa (3 nyawa). Makin cepat kirim, makin
   besar bonus waktu. Skor terbaik tersimpan di browser.
+
+### Juragan Warung! (`juragan-warung/`)
+Life simulator warung (original, terinspirasi gaya video promo Warung Life
+Simulator — bukan salinan game/asetnya): jadi juragan warung selama 3 hari
+(07.00–21.00 tiap hari).
+- Ketuk pelanggan, lalu ketuk menu yang dia pesan. Benar = +uang +reputasi,
+  salah / kelamaan = pelanggan kabur, reputasi turun.
+- 5 menu (Nasi Pecel, Mie Goreng, Kopi, Es Teh, Gorengan) dengan stok —
+  stok habis harus belanja dulu. Tiap sajian −4 energi; makan / istirahat
+  buat isi energi. Pelanggan VIP bayar 2x tapi lebih tidak sabaran.
+- Bank Warga: nabung dapat bunga 10% tiap akhir hari. Misi harian tiap hari
+  (layani 6 pelanggan / dapat Rp100rb / jaga reputasi ≥ 4,0) dengan bonus.
+  Skor akhir = uang + tabungan + reputasi + pelanggan dilayani; skor terbaik
+  tersimpan di browser. Ledakan partikel 3D (Three.js) tiap sajian benar.
 
 ## PWA (install di HP)
 

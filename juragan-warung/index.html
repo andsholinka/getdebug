@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juragan Warung! — Life Simulator Warung — Tara Tech Arcade</title>
+  <meta name="description" content="Juragan Warung! Game life simulator warung dari Tara Tech. Layani pelanggan, kelola stok dan energi, jaga reputasi, nabung di bank, dan jadi juragan warung selama 3 hari!" />
+  <meta name="theme-color" content="#0b1526" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Arcade" />
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
+  <style>
+    :root {
+      --navy: #0f1e33; --accent: #2f7bff; --gold: #ffc531; --green: #3ddc84;
+      --danger: #ff4d5e; --bg: #0b1526; --card: #13233f; --line: #22385c;
+      --text: #eef3fa; --muted: #93a5bd;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .wrap { width: 100%; max-width: 640px; padding: 16px 16px 32px; }
+    header { text-align: center; margin: 8px 0 14px; }
+    .brand { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+    .brand b { color: var(--accent); }
+    h1 { font-size: 34px; letter-spacing: -1px; margin: 6px 0 4px; }
+    h1 span { color: var(--gold); }
+    .tagline { color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .top-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+    .mini-btn {
+      background: var(--card); border: 1px solid var(--line); color: var(--text);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; text-align: center; }
+    .stat small { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .stat b { font-size: 18px; }
+    .stat b.gold { color: var(--gold); }
+    .bar { height: 8px; background: var(--navy); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+    .bar > div { height: 100%; background: var(--green); transition: width 0.3s linear; }
+    .bar > div.low { background: var(--danger); }
+    .bar.time > div { background: var(--accent); }
+    .mission {
+      background: var(--card); border: 1px solid var(--gold); border-radius: 12px;
+      padding: 10px 14px; font-size: 14px; margin-bottom: 12px; line-height: 1.5;
+    }
+    .mission b { color: var(--gold); }
+    .mission.done { border-color: var(--green); }
+    .mission.done b { color: var(--green); }
+    .toast {
+      text-align: center; font-size: 14px; font-weight: 700; color: var(--gold);
+      min-height: 22px; margin-bottom: 8px;
+    }
+    .warung {
+      background: linear-gradient(180deg, #1a2f52, #13233f);
+      border: 1px solid var(--line); border-radius: 20px; padding: 16px 12px;
+      margin-bottom: 12px;
+    }
+    .warung-title { text-align: center; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px; color: var(--gold); }
+    .seats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .seat {
+      background: var(--navy); border: 2px solid var(--line); border-radius: 16px;
+      min-height: 132px; padding: 10px 6px; text-align: center; cursor: pointer;
+      position: relative; transition: transform 0.1s ease, border-color 0.15s ease;
+    }
+    .seat:active { transform: scale(0.96); }
+    .seat.selected { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255, 197, 49, 0.35); }
+    .seat.vip { border-color: var(--gold); background: #2a2305; }
+    .seat .who { font-size: 44px; line-height: 1.1; }
+    .seat .order {
+      display: inline-block; margin-top: 6px; background: #fff; color: #111;
+      border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 800;
+    }
+    .seat .order small { display: block; font-size: 10px; color: #555; font-weight: 600; }
+    .seat .patience { height: 6px; background: #0b1526; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .seat .patience > div { height: 100%; background: var(--green); transition: width 0.2s linear; }
+    .seat .patience > div.low { background: var(--danger); }
+    .seat.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); cursor: default; }
+    .seat.empty .who { font-size: 30px; opacity: 0.5; }
+    .seat.empty p { font-size: 12px; margin-top: 6px; }
+    .menu-label { font-size: 13px; font-weight: 800; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin: 4px 0 8px; }
+    .menu { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+    @media (max-width: 560px) { .menu { grid-template-columns: repeat(3, 1fr); } }
+    .menu button {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 10px 4px; color: var(--text); cursor: pointer; font-family: inherit;
+    }
+    .menu button:disabled { opacity: 0.45; cursor: default; }
+    .menu button .e { font-size: 26px; display: block; }
+    .menu button .n { font-size: 12px; font-weight: 700; display: block; margin-top: 2px; }
+    .menu button .p { font-size: 11px; color: var(--gold); font-weight: 800; display: block; }
+    .menu button .s { font-size: 11px; color: var(--muted); display: block; }
+    .menu button .s.out { color: var(--danger); font-weight: 800; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+    .btn {
+      padding: 11px 18px; border-radius: 999px; background: var(--accent); color: #fff;
+      font-weight: 800; font-size: 14px; border: none; cursor: pointer; font-family: inherit;
+    }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn-gold { background: var(--gold); color: #231a00; }
+    .btn-green { background: var(--green); color: #04140a; }
+    .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); }
+    .panel {
+      display: none; background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    }
+    .panel.show { display: block; }
+    .panel h3 { font-size: 17px; margin-bottom: 4px; }
+    .panel p { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+    .shop-row, .bank-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px;
+    }
+    .shop-row:first-of-type, .bank-row:first-of-type { border-top: none; }
+    .shop-row .buy {
+      background: var(--gold); color: #231a00; border: none; border-radius: 999px;
+      padding: 7px 14px; font-weight: 800; font-size: 13px; cursor: pointer; font-family: inherit;
+    }
+    .shop-row .buy:disabled { opacity: 0.45; cursor: default; }
+    .log { font-size: 13px; color: var(--muted); line-height: 1.9; text-align: center; min-height: 24px; }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(5, 10, 20, 0.85);
+      display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10;
+    }
+    .overlay.hidden { display: none; }
+    .panel-box {
+      background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+      padding: 28px 24px; max-width: 460px; width: 100%; text-align: center;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .panel-box h2 { font-size: 26px; margin-bottom: 10px; }
+    .panel-box p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 8px; }
+    .panel-box .rules { text-align: left; margin: 14px auto 18px; max-width: 360px; font-size: 14px; line-height: 1.9; }
+    .panel-box .rules b { color: var(--text); }
+    .big-score { font-size: 48px; font-weight: 800; color: var(--gold); line-height: 1.1; margin: 6px 0; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    .summary { text-align: left; max-width: 340px; margin: 12px auto 0; font-size: 14px; line-height: 2; }
+    .summary b { float: right; }
+    footer { margin-top: 20px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Tara <b>Tech</b> Arcade</div>
+      <h1>Juragan <span>Warung!</span> 🏪</h1>
+      <p class="tagline">Life simulator warung: layani pelanggan, kelola stok &amp; energi, jaga reputasi, dan jadi juragan selama 3 hari!</p>
+      <div class="top-row">
+        <button class="mini-btn" id="soundBtn">🔊 Suara: nyala</button>
+        <button class="mini-btn" id="howBtn">❓ Cara main</button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="stat"><small>💰 Uang</small><b class="gold" id="money">Rp50rb</b></div>
+      <div class="stat"><small>⭐ Reputasi</small><b id="rep">3,0 ★</b></div>
+      <div class="stat"><small>🏆 Level</small><b id="level">1 · #5</b></div>
+      <div class="stat"><small>🗓️ Hari &amp; jam</small><b id="dayTime">Hari 1 · 07.00</b></div>
+      <div class="stat"><small>⚡ Energi</small><b id="energyText">100%</b><div class="bar"><div id="energyBar" style="width:100%"></div></div></div>
+      <div class="stat"><small>🙋 Dilayani</small><b id="served">0</b></div>
+    </div>
+    <div class="bar time" style="margin-bottom:12px"><div id="dayBar" style="width:0%"></div></div>
+
+    <div class="mission" id="mission">🎯 <b>Misi hari 1:</b> Layani 6 pelanggan — hadiah Rp15rb <span id="missionProg">(0/6)</span></div>
+    <div class="toast" id="toast"></div>
+
+    <div class="warung">
+      <div class="warung-title">🍜 WARUNG BERKAH — BUKA! 🍜</div>
+      <div class="seats" id="seats"></div>
+    </div>
+
+    <div class="menu-label">👆 1. Ketuk pelanggan &nbsp;·&nbsp; 2. Ketuk menunya buat menyajikan</div>
+    <div class="menu" id="menu"></div>
+
+    <div class="actions">
+      <button class="btn btn-gold" id="shopBtn">🛒 Belanja Stok</button>
+      <button class="btn btn-green" id="bankBtn">🏦 Bank Warga</button>
+      <button class="btn" id="eatBtn">🍽️ Makan (+30⚡ Rp5rb)</button>
+      <button class="btn btn-ghost" id="restBtn">😴 Istirahat (+40⚡)</button>
+    </div>
+
+    <div class="panel" id="shopPanel">
+      <h3>🛒 Belanja Stok</h3>
+      <p>Beli 5 porsi sekaligus. Stok habis = pelanggan tidak bisa dilayani, jadi cek stok sebelum ramai!</p>
+      <div id="shopList"></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="shopClose">Tutup</button></div>
+    </div>
+
+    <div class="panel" id="bankPanel">
+      <h3>🏦 Bank Warga</h3>
+      <p>Nabung uangmu di bank, dapat <b>bunga 10% tiap akhir hari</b>. Uang di bank aman, tapi tidak bisa dipakai belanja sebelum ditarik.</p>
+      <div class="bank-row"><span>💰 Saldo tabungan</span><b id="bankBalance">Rp0</b></div>
+      <div class="bank-row"><span>Nabung Rp20rb</span><button class="btn btn-gold" id="depositBtn">Nabung</button></div>
+      <div class="bank-row"><span>Tarik Rp20rb</span><button class="btn" id="withdrawBtn">Tarik</button></div>
+      <div class="btn-row"><button class="btn btn-ghost" id="bankClose">Tutup</button></div>
+    </div>
+
+    <div class="log" id="log">Warung baru buka. Pelanggan pertama segera datang…</div>
+
+    <footer>
+      Dibuat oleh <a href="https://taratech.web.id" target="_blank" rel="noopener">Tara Tech</a> — game original, terinspirasi gaya life-simulator warung.<br />
+      Skor terbaik tersimpan di browser ini. Lihat semua game: <a href="/">Tara Tech Arcade</a> · <a href="/tangkap-bug/">Tangkap Bug! 🐛</a> · <a href="/jangan-typo/">Jangan Typo! ⌨️</a>
+    </footer>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel-box">
+      <h2>Juragan Warung! 🏪</h2>
+      <p>Kamu juragan warung selama <b>3 hari</b> (07.00–21.00 tiap hari). Layani pelanggan secepat dan setepat mungkin!</p>
+      <div class="rules">
+        <div>👆 Ketuk <b>pelanggan</b>, lalu ketuk <b>menu</b> yang dia pesan.</div>
+        <div>✅ Pesanan benar = <b>+uang, +reputasi</b>. ❌ Salah / kelamaan = pelanggan kabur, reputasi turun.</div>
+        <div>⚡ Tiap sajian −4 energi. Energi habis = makan / istirahat dulu.</div>
+        <div>📦 Stok habis = tidak bisa jualan. Belanja sebelum ramai!</div>
+        <div>🏦 Nabung di bank = bunga <b>10% tiap akhir hari</b>.</div>
+        <div>👑 Pelanggan VIP bayar <b>2x lipat</b>, tapi lebih tidak sabaran.</div>
+        <div>🎯 Selesaikan <b>misi harian</b> buat bonus uang.</div>
+      </div>
+      <button class="btn btn-gold" id="startBtn">Buka Warung!</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="dayOverlay">
+    <div class="panel-box">
+      <h2 id="dayTitle">Hari 1 selesai!</h2>
+      <p id="daySub"></p>
+      <div class="summary" id="daySummary"></div>
+      <div class="btn-row"><button class="btn btn-gold" id="nextDayBtn">Lanjut Hari Berikutnya</button></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="panel-box">
+      <h2>3 Hari Berlalu! 🎉</h2>
+      <p>Ini hasil usahamu jadi juragan warung:</p>
+      <div class="big-score" id="finalScore">Rp0</div>
+      <p id="endMessage"></p>
+      <p id="newBest" style="color: var(--gold); font-weight: 700;"></p>
+      <div class="summary" id="finalSummary"></div>
+      <div class="btn-row">
+        <button class="btn btn-gold" id="againBtn">Main Lagi</button>
+        <button class="btn" id="shareBtn">Bagikan Skor</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/assets/js/burst-3d.js"></script>
+  <script>
+    var MENU = [
+      { id: "pecel",  emoji: "🍛", name: "Nasi Pecel", price: 10000, cost: 4000 },
+      { id: "mie",    emoji: "🍜", name: "Mie Goreng", price: 12000, cost: 5000 },
+      { id: "kopi",   emoji: "☕", name: "Kopi",       price: 5000,  cost: 2000 },
+      { id: "teh",    emoji: "🧋", name: "Es Teh",     price: 4000,  cost: 1500 },
+      { id: "goreng", emoji: "🍤", name: "Gorengan",   price: 3000,  cost: 1000 }
+    ];
+    var CUSTOMERS = ["👨", "👩", "👴", "👵", "🧕", "👳", "🧑", "👩‍🦰", "🧔", "👦"];
+    var DAY_LENGTH = 75; // detik per hari
+    var MISSIONS = [
+      { text: "Layani 6 pelanggan", reward: 15000, check: function (s) { return s.servedToday >= 6; }, prog: function (s) { return Math.min(s.servedToday, 6) + "/6"; } },
+      { text: "Dapat Rp100rb hari ini", reward: 25000, check: function (s) { return s.earnedToday >= 100000; }, prog: function (s) { return "Rp" + Math.min(s.earnedToday, 100000) / 1000 + "rb/100rb"; } },
+      { text: "Jaga reputasi ≥ 4,0 di akhir hari", reward: 30000, check: function (s) { return s.rep >= 4.0; }, prog: function (s) { return s.rep.toFixed(1) + "★ / 4,0★"; } }
+    ];
+
+    var $ = function (id) { return document.getElementById(id); };
+    var moneyEl = $("money"), repEl = $("rep"), levelEl = $("level"), dayTimeEl = $("dayTime"),
+        energyTextEl = $("energyText"), energyBarEl = $("energyBar"), servedEl = $("served"),
+        dayBarEl = $("dayBar"), missionEl = $("mission"), missionProgEl = $("missionProg"),
+        toastEl = $("toast"), seatsEl = $("seats"), menuEl = $("menu"), logEl = $("log");
+
+    var state, timer = null, spawnIn = 2, toastTimer = null, soundOn = true, audioCtx = null;
+
+    function fmtRp(n) { return "Rp" + Math.round(n / 1000) + "rb"; }
+    function fmtRpFull(n) { return "Rp" + n.toLocaleString("id-ID"); }
+
+    function beep(freq, dur, type) {
+      if (!soundOn) return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = type || "sine"; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+    function coinSound() { beep(880, 0.12); setTimeout(function () { beep(1320, 0.15); }, 90); }
+    function badSound() { beep(180, 0.25, "sawtooth"); }
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { toastEl.textContent = ""; }, 2200);
+    }
+    function log(msg) { logEl.textContent = msg; }
+
+    function newState() {
+      return {
+        day: 1, dayTime: 0, playing: false, resting: false, paused: false,
+        money: 50000, bank: 0, energy: 100, rep: 3.0, level: 1,
+        served: 0, servedToday: 0, earnedToday: 0, lostToday: 0,
+        stock: { pecel: 4, mie: 3, kopi: 5, teh: 4, goreng: 5 },
+        customers: [null, null, null], selected: -1,
+        missionDone: false, totalEarned: 0, totalLost: 0
+      };
+    }
+
+    function menuById(id) { for (var i = 0; i < MENU.length; i++) if (MENU[i].id === id) return MENU[i]; return null; }
+
+    function buildSeats() {
+      seatsEl.innerHTML = "";
+      for (var i = 0; i < 3; i++) {
+        (function (idx) {
+          var d = document.createElement("div");
+          d.className = "seat empty"; d.id = "seat-" + idx;
+          d.innerHTML = '<div class="who">🪑</div><p>Meja kosong</p>';
+          d.addEventListener("click", function () { selectSeat(idx); });
+          seatsEl.appendChild(d);
+        })(i);
+      }
+    }
+
+    function buildMenu() {
+      menuEl.innerHTML = "";
+      MENU.forEach(function (m) {
+        var b = document.createElement("button");
+        b.id = "menu-" + m.id;
+        b.innerHTML = '<span class="e">' + m.emoji + '</span><span class="n">' + m.name + '</span>' +
+          '<span class="p">' + fmtRp(m.price) + '</span><span class="s" id="stock-' + m.id + '"></span>';
+        b.addEventListener("click", function () { serve(m.id); });
+        menuEl.appendChild(b);
+      });
+    }
+
+    function buildShop() {
+      var list = $("shopList");
+      list.innerHTML = "";
+      MENU.forEach(function (m) {
+        var row = document.createElement("div");
+        row.className = "shop-row";
+        row.innerHTML = '<span>' + m.emoji + ' ' + m.name + ' ×5 — <b>' + fmtRp(m.cost * 5) + '</b> <small style="color:var(--muted)">(stok: <span id="shop-stock-' + m.id + '"></span>)</small></span>';
+        var btn = document.createElement("button");
+        btn.className = "buy"; btn.textContent = "Beli";
+        btn.addEventListener("click", function () { buyStock(m.id); });
+        btn.id = "buy-" + m.id;
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    }
+
+    function render() {
+      moneyEl.textContent = fmtRp(state.money);
+      repEl.textContent = state.rep.toFixed(1) + " ★";
+      var rank = Math.max(1, 6 - state.level);
+      levelEl.textContent = state.level + " · #" + rank;
+      var hour = 7 + (state.dayTime / DAY_LENGTH) * 14;
+      var hh = Math.floor(hour), mm = Math.floor((hour - hh) * 60);
+      dayTimeEl.textContent = "Hari " + state.day + " · " + String(hh).padStart(2, "0") + "." + String(mm).padStart(2, "0");
+      energyTextEl.textContent = Math.round(state.energy) + "%";
+      energyBarEl.style.width = Math.max(0, state.energy) + "%";
+      energyBarEl.classList.toggle("low", state.energy <= 25);
+      servedEl.textContent = state.served;
+      dayBarEl.style.width = (state.dayTime / DAY_LENGTH * 100) + "%";
+      $("bankBalance").textContent = fmtRpFull(state.bank);
+      MENU.forEach(function (m) {
+        var s = $("stock-" + m.id);
+        if (s) { s.textContent = "Stok: " + state.stock[m.id]; s.classList.toggle("out", state.stock[m.id] <= 0); }
+        var ss = $("shop-stock-" + m.id);
+        if (ss) ss.textContent = state.stock[m.id];
+        var buy = $("buy-" + m.id);
+        if (buy) buy.disabled = state.money < m.cost * 5;
+      });
+      $("depositBtn").disabled = state.money < 20000;
+      $("withdrawBtn").disabled = state.bank < 20000;
+      var mission = MISSIONS[state.day - 1];
+      missionEl.classList.toggle("done", state.missionDone);
+      missionEl.innerHTML = "🎯 <b>Misi hari " + state.day + ":</b> " + mission.text + " — hadiah " + fmtRp(mission.reward) +
+        ' <span id="missionProg">(' + mission.prog(state) + ")</span>" + (state.missionDone ? " ✅ Selesai!" : "");
+      // seats
+      state.customers.forEach(function (c, i) {
+        var seat = $("seat-" + i);
+        if (!seat) return;
+        seat.classList.toggle("selected", state.selected === i && !!c);
+        if (!c) {
+          seat.className = "seat empty";
+          seat.innerHTML = '<div class="who">🪑</div><p>Meja kosong</p>';
+          return;
+        }
+        seat.className = "seat" + (c.vip ? " vip" : "") + (state.selected === i ? " selected" : "");
+        var pct = Math.max(0, c.patience / c.maxPatience * 100);
+        seat.innerHTML = '<div class="who">' + c.emoji + (c.vip ? " 👑" : "") + '</div>' +
+          '<div class="order">' + c.order.emoji + " " + c.order.name + "<small>" + (c.vip ? "VIP · bayar 2x!" : "Sabar ya…") + "</small></div>" +
+          '<div class="patience"><div class="' + (pct <= 30 ? "low" : "") + '" style="width:' + pct + '%"></div></div>';
+      });
+    }
+
+    function randomOrder() { return MENU[Math.floor(Math.random() * MENU.length)]; }
+
+    function spawnCustomer() {
+      var empty = [];
+      state.customers.forEach(function (c, i) { if (!c) empty.push(i); });
+      if (!empty.length) return;
+      var idx = empty[Math.floor(Math.random() * empty.length)];
+      var vip = Math.random() < 0.15;
+      var patience = vip ? 9 : 14 - Math.min(4, (state.day - 1) * 2);
+      state.customers[idx] = {
+        emoji: CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)],
+        order: randomOrder(), vip: vip, patience: patience, maxPatience: patience
+      };
+      beep(520, 0.08);
+      render();
+    }
+
+    function selectSeat(i) {
+      if (!state.playing) return;
+      if (!state.customers[i]) { state.selected = -1; render(); return; }
+      state.selected = (state.selected === i) ? -1 : i;
+      render();
+    }
+
+    function burstAtSeat(i, color) {
+      if (!window.ArcadeBurst) return;
+      var seat = $("seat-" + i);
+      if (!seat) return;
+      var r = seat.getBoundingClientRect();
+      window.ArcadeBurst.burst(r.left + r.width / 2, r.top + r.height / 2, color, 22);
+    }
+
+    function serve(menuId) {
+      if (!state.playing || state.resting) return;
+      if (state.selected < 0 || !state.customers[state.selected]) { toast("👆 Ketuk pelanggannya dulu!"); return; }
+      if (state.energy <= 0) { toast("⚡ Energimu habis! Makan atau istirahat dulu."); badSound(); return; }
+      var m = menuById(menuId);
+      if (state.stock[menuId] <= 0) { toast("📦 Stok " + m.name + " habis! Belanja dulu."); badSound(); return; }
+      var idx = state.selected, c = state.customers[idx];
+      if (m.id !== c.order.id) {
+        state.customers[idx] = null; state.selected = -1;
+        state.rep = Math.max(0, state.rep - 0.2);
+        state.lostToday++; state.totalLost++;
+        toast("😡 Salah sajian! Pelanggan kabur, reputasi −0,2★");
+        log("Pelanggan kabur karena salah pesanan. Hati-hati, cek bubble pesanannya!");
+        badSound(); render();
+        return;
+      }
+      var price = c.vip ? m.price * 2 : m.price;
+      state.stock[menuId]--;
+      state.money += price; state.totalEarned += price; state.earnedToday += price;
+      state.energy = Math.max(0, state.energy - 4);
+      state.rep = Math.min(5, state.rep + 0.1);
+      state.served++; state.servedToday++;
+      var newLevel = 1 + Math.floor(state.served / 8);
+      if (newLevel > state.level) { state.level = newLevel; toast("🎉 Naik level " + newLevel + "! Peringkat warungmu naik!"); }
+      else toast("✅ " + m.name + " disajikan! +" + fmtRp(price) + (c.vip ? " (VIP 2x!)" : ""));
+      log("Pelanggan puas! +" + fmtRp(price) + " · Reputasi " + state.rep.toFixed(1) + "★");
+      burstAtSeat(idx, c.vip ? 0xffc531 : 0x3ddc84);
+      coinSound();
+      state.customers[idx] = null; state.selected = -1;
+      checkMission();
+      render();
+    }
+
+    function checkMission() {
+      if (state.missionDone) return;
+      var mission = MISSIONS[state.day - 1];
+      if (mission.check(state)) {
+        state.missionDone = true;
+        state.money += mission.reward;
+        toast("🎯 Misi selesai! Bonus +" + fmtRp(mission.reward));
+        log("Misi hari " + state.day + " selesai — bonus " + fmtRp(mission.reward) + "!");
+        coinSound();
+      }
+    }
+
+    function buyStock(id) {
+      var m = menuById(id);
+      if (state.money < m.cost * 5) { toast("💰 Uang tidak cukup buat belanja!"); return; }
+      state.money -= m.cost * 5;
+      state.stock[id] += 5;
+      toast("🛒 Beli 5× " + m.name + " (−" + fmtRp(m.cost * 5) + ")");
+      beep(660, 0.1);
+      render();
+    }
+
+    function endDay() {
+      state.playing = false;
+      clearInterval(timer); timer = null;
+      state.customers = [null, null, null]; state.selected = -1;
+      var interest = Math.floor(state.bank * 0.10);
+      state.bank += interest;
+      checkMission();
+      var mission = MISSIONS[state.day - 1];
+      var missionOk = state.missionDone;
+      if (state.day >= 3) { showEnd(interest); return; }
+      $("dayTitle").textContent = "Hari " + state.day + " selesai! 🌙";
+      $("daySub").textContent = interest > 0
+        ? "Bunga bank + " + fmtRpFull(interest) + ". Warung tutup, waktunya istirahat."
+        : "Warung tutup, waktunya istirahat.";
+      $("daySummary").innerHTML =
+        "<div>💰 Uang sekarang <b>" + fmtRpFull(state.money) + "</b></div>" +
+        "<div>🏦 Tabungan <b>" + fmtRpFull(state.bank) + "</b></div>" +
+        "<div>🙋 Dilayani hari ini <b>" + state.servedToday + "</b></div>" +
+        "<div>😡 Pelanggan kabur <b>" + state.lostToday + "</b></div>" +
+        "<div>⭐ Reputasi <b>" + state.rep.toFixed(1) + "★</b></div>" +
+        "<div>🎯 Misi <b>" + (missionOk ? "Selesai ✅" : "Gagal — " + mission.text) + "</b></div>";
+      $("nextDayBtn").textContent = "Lanjut Hari " + (state.day + 1);
+      $("dayOverlay").classList.remove("hidden");
+      render();
+    }
+
+    function showEnd(interest) {
+      var score = state.money + state.bank + Math.round(state.rep * 10000) + state.served * 1000;
+      var best = parseInt(localStorage.getItem("juraganWarungBest") || "0", 10);
+      var isBest = score > best;
+      if (isBest) { best = score; localStorage.setItem("juraganWarungBest", String(best)); }
+      $("finalScore").textContent = fmtRpFull(score);
+      $("endMessage").textContent =
+        score >= 250000 ? "Gila, juragan sejati! Warungmu legenda kampung." :
+        score >= 150000 ? "Hebat! Warungmu makin ramai dan dipercaya." :
+        score >= 80000 ? "Lumayan! Sedikit lagi jadi juragan besar." :
+        "Warungmu masih merintis… coba lagi, pasti bisa!";
+      $("newBest").textContent = isBest ? "🎉 Rekor baru! Skor terbaikmu!" : "Skor terbaikmu: " + fmtRpFull(best);
+      $("finalSummary").innerHTML =
+        "<div>💰 Uang + tabungan <b>" + fmtRpFull(state.money + state.bank) + "</b></div>" +
+        "<div>⭐ Reputasi akhir <b>" + state.rep.toFixed(1) + "★</b></div>" +
+        "<div>🙋 Total dilayani <b>" + state.served + "</b></div>" +
+        "<div>😡 Total kabur <b>" + state.totalLost + "</b></div>" +
+        "<div>🏆 Level akhir <b>" + state.level + "</b></div>";
+      $("endOverlay").classList.remove("hidden");
+      window._finalScore = score;
+      render();
+    }
+
+    function tick() {
+      if (!state.playing) return;
+      state.dayTime += 0.2;
+      spawnIn -= 0.2;
+      if (spawnIn <= 0) { spawnCustomer(); spawnIn = 2.5 + Math.random() * 2 - Math.min(1, (state.day - 1) * 0.5); }
+      var changed = false;
+      state.customers.forEach(function (c, i) {
+        if (!c) return;
+        c.patience -= 0.2;
+        changed = true;
+        if (c.patience <= 0) {
+          state.customers[i] = null;
+          if (state.selected === i) state.selected = -1;
+          state.rep = Math.max(0, state.rep - 0.2);
+          state.lostToday++; state.totalLost++;
+          toast("😡 Pelanggan kelamaan nunggu, kabur! Reputasi −0,2★");
+          log("Pelanggan kabur karena kelamaan. Layani lebih cepat!");
+          badSound();
+        }
+      });
+      if (changed || true) render();
+      if (state.dayTime >= DAY_LENGTH) endDay();
+    }
+
+    function startGame() {
+      state = newState();
+      buildSeats(); buildMenu(); buildShop();
+      spawnIn = 1.5;
+      state.playing = true;
+      $("startOverlay").classList.add("hidden");
+      $("endOverlay").classList.add("hidden");
+      $("dayOverlay").classList.add("hidden");
+      log("Warung baru buka. Pelanggan pertama segera datang…");
+      toast("🏪 Warung buka! Layani pelangganmu!");
+      render();
+      clearInterval(timer);
+      timer = setInterval(tick, 200);
+    }
+
+    function nextDay() {
+      state.day++;
+      state.dayTime = 0; state.servedToday = 0; state.earnedToday = 0; state.lostToday = 0;
+      state.energy = 80; state.missionDone = false; state.selected = -1;
+      spawnIn = 1.5;
+      state.playing = true;
+      $("dayOverlay").classList.add("hidden");
+      log("Hari " + state.day + " dimulai! Pelanggan makin ramai…");
+      toast("🌅 Hari " + state.day + "! " + MISSIONS[state.day - 1].text);
+      render();
+      clearInterval(timer);
+      timer = setInterval(tick, 200);
+    }
+
+    $("startBtn").addEventListener("click", function () {
+      try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+      if (state.paused) {
+        state.paused = false; state.playing = true;
+        $("startOverlay").classList.add("hidden");
+        $("startBtn").textContent = "Buka Warung!";
+        clearInterval(timer);
+        timer = setInterval(tick, 200);
+        return;
+      }
+      startGame();
+    });
+    $("againBtn").addEventListener("click", startGame);
+    $("nextDayBtn").addEventListener("click", nextDay);
+    $("shopBtn").addEventListener("click", function () { $("shopPanel").classList.toggle("show"); $("bankPanel").classList.remove("show"); render(); });
+    $("shopClose").addEventListener("click", function () { $("shopPanel").classList.remove("show"); });
+    $("bankBtn").addEventListener("click", function () { $("bankPanel").classList.toggle("show"); $("shopPanel").classList.remove("show"); render(); });
+    $("bankClose").addEventListener("click", function () { $("bankPanel").classList.remove("show"); });
+    $("depositBtn").addEventListener("click", function () {
+      if (state.money < 20000) { toast("💰 Uang tidak cukup buat nabung!"); return; }
+      state.money -= 20000; state.bank += 20000;
+      toast("🏦 Nabung Rp20rb. Bunga 10% di akhir hari!"); beep(760, 0.1); render();
+    });
+    $("withdrawBtn").addEventListener("click", function () {
+      if (state.bank < 20000) { toast("🏦 Tabungan tidak cukup!"); return; }
+      state.bank -= 20000; state.money += 20000;
+      toast("🏦 Tarik Rp20rb."); beep(660, 0.1); render();
+    });
+    $("eatBtn").addEventListener("click", function () {
+      if (!state.playing) return;
+      if (state.money < 5000) { toast("💰 Uang tidak cukup buat makan!"); return; }
+      if (state.energy >= 100) { toast("⚡ Energimu sudah penuh!"); return; }
+      state.money -= 5000; state.energy = Math.min(100, state.energy + 30);
+      toast("🍽️ Makan nasi pecel! +30 energi"); beep(520, 0.12); render();
+    });
+    $("restBtn").addEventListener("click", function () {
+      if (!state.playing || state.resting) return;
+      if (state.energy >= 100) { toast("⚡ Energimu sudah penuh!"); return; }
+      state.resting = true;
+      $("restBtn").disabled = true;
+      $("restBtn").textContent = "😴 Istirahat…";
+      log("Kamu istirahat sebentar. Pelanggan tetap datang ya…");
+      setTimeout(function () {
+        state.energy = Math.min(100, state.energy + 40);
+        state.resting = false;
+        $("restBtn").disabled = false;
+        $("restBtn").textContent = "😴 Istirahat (+40⚡)";
+        toast("😴 Istirahat selesai! +40 energi");
+        render();
+      }, 3000);
+    });
+    $("soundBtn").addEventListener("click", function () {
+      soundOn = !soundOn;
+      $("soundBtn").textContent = soundOn ? "🔊 Suara: nyala" : "🔇 Suara: mati";
+    });
+    $("howBtn").addEventListener("click", function () {
+      if (state.playing) {
+        state.playing = false; state.paused = true;
+        clearInterval(timer); timer = null;
+        $("startBtn").textContent = "Lanjut Main";
+      }
+      $("startOverlay").classList.remove("hidden");
+    });
+    $("shareBtn").addEventListener("click", function () {
+      var text = "Aku dapat skor " + fmtRpFull(window._finalScore || 0) + " di game Juragan Warung! dari Tara Tech. Berani coba kalahin aku? " + window.location.href;
+      if (navigator.share) { navigator.share({ title: "Juragan Warung! — Tara Tech", text: text }).catch(function () {}); }
+      else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          $("shareBtn").textContent = "Disalin!";
+          setTimeout(function () { $("shareBtn").textContent = "Bagikan Skor"; }, 2000);
+        });
+      }
+    });
+
+    state = newState();
+    buildSeats(); buildMenu(); buildShop();
+    render();
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) { navigator.serviceWorker.register("/sw.js").catch(function () {}); }
+  </script>
+</body>
+</html>
