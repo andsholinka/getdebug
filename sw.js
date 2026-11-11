@@ -1,13 +1,17 @@
 /* Tara Tech Arcade — service worker: cache app shell agar bisa diinstall & main offline.
    Halaman (navigasi) pakai network-first supaya update konten langsung sampai,
    aset statis pakai cache-first supaya tetap cepat dan bisa offline. */
-var CACHE = "tara-arcade-v2";
+var CACHE = "tara-arcade-v3";
 var CORE = [
   "/",
   "/tangkap-bug/",
   "/jangan-typo/",
   "/manifest.webmanifest",
-  "/icons/icon.svg"
+  "/icons/icon.svg",
+  "/vendor/three/three.module.js",
+  "/vendor/three/three.core.js",
+  "/assets/js/hero-3d.js",
+  "/assets/js/burst-3d.js"
 ];
 
 self.addEventListener("install", function (event) {
