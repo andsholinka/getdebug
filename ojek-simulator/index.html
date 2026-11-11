@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ojek Simulator — Tara Tech Arcade</title>
+  <meta name="description" content="Ojek Simulator dari Tara Tech. Antar penumpang, pilih jalan, hindari macet, jangan sampai bensin habis. Berapa rupiah yang bisa kamu kumpulkan dalam 1 shift?" />
+  <meta name="theme-color" content="#0b1526" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icons/icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Arcade" />
+  <style>
+    :root {
+      --navy: #0f1e33; --accent: #2f7bff; --gold: #ffc531; --danger: #ff4d5e;
+      --green: #3ddc84; --bg: #0b1526; --card: #13233f; --line: #22385c;
+      --text: #eef3fa; --muted: #93a5bd;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .wrap { width: 100%; max-width: 560px; padding: 20px 16px 32px; }
+    header { text-align: center; margin: 8px 0 14px; }
+    .brand { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+    .brand b { color: var(--accent); }
+    h1 { font-size: 36px; letter-spacing: -1px; margin: 6px 0 4px; }
+    h1 span { color: var(--gold); }
+    .tagline { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    .hud { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 14px 0 10px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; text-align: center; }
+    .stat small { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .stat b { font-size: 19px; }
+    .stat.money b { color: var(--gold); }
+    .stat.rating b { color: var(--gold); }
+
+    .bars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .bar-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; font-size: 12px; }
+    .bar-box .row { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 5px; }
+    .bar-box .row span:last-child { color: var(--muted); font-weight: 400; }
+    .bar { height: 9px; background: var(--navy); border-radius: 999px; overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: 999px; transition: width .2s linear; }
+    #fuelFill { background: var(--green); width: 100%; }
+    #fuelFill.low { background: var(--danger); }
+    #distFill { background: var(--accent); width: 100%; }
+
+    .order {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 12px 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center;
+    }
+    .order .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--navy); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .order .info { flex: 1; min-width: 0; }
+    .order .info b { font-size: 15px; display: block; }
+    .order .info small { color: var(--muted); font-size: 12px; line-height: 1.45; display: block; }
+    .order .fare { text-align: right; flex-shrink: 0; }
+    .order .fare b { color: var(--gold); font-size: 16px; display: block; }
+    .order .fare small { color: var(--muted); font-size: 11px; }
+
+    #eventBanner {
+      display: none; text-align: center; font-weight: 800; font-size: 14px;
+      background: var(--gold); color: #231a00; border-radius: 999px; padding: 8px 12px; margin-bottom: 10px;
+    }
+    #eventBanner.show { display: block; }
+
+    .stage { position: relative; border-radius: 20px; overflow: hidden; border: 1px solid var(--line); background: #1a2b1a; }
+    canvas { display: block; width: 100%; height: auto; touch-action: none; }
+    .overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px; background: rgba(11, 21, 38, 0.82); gap: 10px;
+    }
+    .overlay.hidden { display: none; }
+    .overlay h2 { font-size: 28px; }
+    .overlay p { color: var(--muted); font-size: 14px; line-height: 1.6; max-width: 340px; }
+    .overlay .big { font-size: 40px; }
+    .overlay .score-line { font-size: 17px; font-weight: 800; color: var(--gold); }
+    .btn {
+      display: inline-block; background: var(--accent); color: #fff; border: none; cursor: pointer;
+      font-weight: 800; font-size: 16px; padding: 13px 26px; border-radius: 999px; margin-top: 4px;
+    }
+    .btn.gold { background: var(--gold); color: #231a00; }
+    .btn.ghost { background: var(--navy); color: var(--text); border: 1px solid var(--line); font-size: 14px; padding: 11px 20px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .ctl {
+      background: var(--card); border: 1px solid var(--line); color: var(--text);
+      border-radius: 16px; padding: 16px 8px; font-size: 22px; font-weight: 800; cursor: pointer;
+      user-select: none; -webkit-user-select: none; touch-action: none;
+    }
+    .ctl:active, .ctl.on { background: var(--accent); border-color: var(--accent); }
+    .ctl.gas { background: var(--gold); color: #231a00; border-color: var(--gold); }
+    .ctl.gas:active, .ctl.gas.on { background: #e0a800; }
+    .ctl small { display: block; font-size: 11px; font-weight: 700; margin-top: 2px; }
+    .keys { text-align: center; color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.7; }
+    .keys kbd { background: var(--navy); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; font-family: inherit; color: var(--text); }
+
+    .howto { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 20px; margin-top: 16px; }
+    .howto h2 { font-size: 19px; margin-bottom: 10px; }
+    .howto ul { margin-left: 18px; line-height: 1.9; font-size: 14px; color: var(--muted); }
+    .howto ul b { color: var(--text); }
+    footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">Tara <b>Tech</b> Arcade</div>
+      <h1>🛵 Ojek <span>Simulator</span></h1>
+      <p class="tagline">Antar penumpang, pilih jalan, hindari macet. 1 shift = 5 orderan. Jangan sampai bensin habis di tengah jalan!</p>
+    </header>
+
+    <div class="hud">
+      <div class="stat money"><small>💰 Uang</small><b id="money">Rp 0</b></div>
+      <div class="stat"><small>📦 Order</small><b id="orderNo">– / 5</b></div>
+      <div class="stat rating"><small>⭐ Rating</small><b id="rating">5.0</b></div>
+    </div>
+
+    <div class="bars">
+      <div class="bar-box">
+        <div class="row"><span>⛽ Bensin</span><span id="fuelPct">100%</span></div>
+        <div class="bar"><i id="fuelFill"></i></div>
+      </div>
+      <div class="bar-box">
+        <div class="row"><span>📍 Sisa jarak</span><span id="distLeft">–</span></div>
+        <div class="bar"><i id="distFill"></i></div>
+      </div>
+    </div>
+
+    <div class="order" id="orderCard">
+      <div class="avatar" id="orderAvatar">🧑</div>
+      <div class="info">
+        <b id="orderName">Belum ada orderan</b>
+        <small id="orderRoute">Tekan “Mulai Shift” — order pertama langsung masuk.</small>
+      </div>
+      <div class="fare"><b id="orderFare">–</b><small id="orderTime">–</small></div>
+    </div>
+
+    <div id="eventBanner"></div>
+
+    <div class="stage">
+      <canvas id="game" width="360" height="520"></canvas>
+
+      <div class="overlay" id="menuOverlay">
+        <div class="big">🛵💨</div>
+        <h2>Siap Ngojek?</h2>
+        <p>Belok kiri-kanan buat hindari mobil, angkot &amp; lubang. Ambil <b>🪙 koin</b> dan <b>⛽ bensin</b>. Sampai tujuan sebelum waktu habis — makin cepat, makin besar tipnya!</p>
+        <p>🏆 Uang terbanyak: <b id="menuBest">Rp 0</b> &nbsp;•&nbsp; ⭐ Rating terbaik: <b id="menuBestRating">–</b></p>
+        <button class="btn gold" id="startBtn">▶ Mulai Shift</button>
+        <div class="btn-row">
+          <button class="btn ghost" id="howBtn">Cara main</button>
+          <button class="btn ghost" id="muteBtn">🔊 Suara: Nyala</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="orderOverlay">
+        <div class="big" id="orderEmoji">✅</div>
+        <h2 id="orderTitle">Orderan Selesai!</h2>
+        <p id="orderDetail"></p>
+        <div class="score-line" id="orderScore"></div>
+        <button class="btn gold" id="nextBtn">Order Berikutnya ➤</button>
+      </div>
+
+      <div class="overlay hidden" id="endOverlay">
+        <div class="big">🏁</div>
+        <h2 id="endTitle">Shift Selesai!</h2>
+        <p id="endDetail"></p>
+        <div class="score-line" id="endScore"></div>
+        <p id="endBest"></p>
+        <div class="btn-row">
+          <button class="btn gold" id="againBtn">🔄 Main Lagi</button>
+          <button class="btn" id="shareBtn">Bagikan Skor</button>
+        </div>
+        <a class="btn ghost" href="/" style="text-decoration:none">← Kembali ke Arcade</a>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="ctl" id="leftBtn">◀<small>BELOK KIRI</small></button>
+      <button class="ctl gas" id="gasBtn">💨<small>TAHAN = GAS</small></button>
+      <button class="ctl" id="rightBtn">▶<small>BELOK KANAN</small></button>
+    </div>
+    <p class="keys"><kbd>←</kbd> <kbd>→</kbd> belok &nbsp;•&nbsp; <kbd>↑</kbd> gas &nbsp;•&nbsp; <kbd>↓</kbd> rem &nbsp;•&nbsp; <kbd>Spasi</kbd> mulai / lanjut &nbsp;•&nbsp; <kbd>P</kbd> jeda</p>
+
+    <div class="howto" id="howto">
+      <h2>🛵 Cara main</h2>
+      <ul>
+        <li><b>1 shift = 5 orderan.</b> Tiap orderan ada penumpang, tujuan, tarif, dan batas waktu.</li>
+        <li><b>Belok</b> kiri-kanan buat hindari <b>🚗 mobil, 🚚 truk, 🚌 angkot</b> dan <b>🕳️ lubang</b>. Tabrakan = bensin berkurang &amp; rating turun.</li>
+        <li><b>Gas</b> bikin cepat sampai (dan tip lebih besar), tapi bensin lebih boros &amp; rintangan datang lebih cepat.</li>
+        <li>Ambil <b>🪙 koin +Rp500</b> dan <b>⛽ bensin +25</b>. Bensin habis = motor mogok, orderan gagal.</li>
+        <li><b>Event jalanan:</b> 🌧️ Hujan (jalan licin), 🚗💨 Macet (lalu lintas padat), 🕳️ Jalan Rusak (lubang di mana-mana), 🍃 Jalan Lancar (bonus ngebut).</li>
+        <li>Antar <b>cepat + tanpa tabrakan</b> = tip besar &amp; rating naik. Telat = orderan gagal.</li>
+      </ul>
+    </div>
+
+    <footer>
+      Game original dari <a href="https://taratech.web.id" target="_blank" rel="noopener">Tara Tech</a> — bukan game ojol beneran, jangan dicoba di jalan raya ya 😄<br />
+      <a href="/tangkap-bug/">Tangkap Bug!</a> • <a href="/jangan-typo/">Jangan Typo!</a> • <a href="/juragan-warung/">Juragan Warung!</a> • <a href="/">Arcade</a>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+      var canvas = $("game"), ctx = canvas.getContext("2d");
+      var W = 360, H = 520;
+
+      // ---------- data ----------
+      var NAMES = [
+        ["🧑‍💼", "Pak Budi", "Kantor Sudirman", "Stasiun Gambir"],
+        ["👩‍🎓", "Sari", "Kampus UI", "Kos Margonda"],
+        ["🧕", "Bu Ani", "Pasar Minggu", "Rumah Tebet"],
+        ["🧑‍🍳", "Chef Rudi", "Restoran Blok M", "Apartemen Kuningan"],
+        ["👨‍🎓", "Dimas", "Stasiun Kota", "Kantor Thamrin"],
+        ["👩‍💻", "Rina", "Co-working Kemang", "Rumah Depok"],
+        ["🧑‍🏫", "Pak Guru", "Sekolah Menteng", "Rumah Cikini"],
+        ["👵", "Mbah Sari", "Puskesmas", "Rumah Kebayoran"],
+        ["🧑‍🎤", "Kak Nadia", "Studio Senayan", "Kafe PIK"],
+        ["👨‍⚕️", "Dokter Fajar", "RS Fatmawati", "Klinik Lebak Bulus"]
+      ];
+      var LANES = [62, 180, 298];
+      var BEST_MONEY_KEY = "ojekBestMoney";
+      var BEST_RATING_KEY = "ojekBestRating";
+
+      // ---------- state ----------
+      var state = "menu"; // menu | playing | paused | orderDone | over
+      var money = 0, rating = 5.0, orderIdx = 0, ordersDone = 0, crashes = 0;
+      var fuel = 100, speed = 0, playerLane = 1, playerX = LANES[1], playerY = 430;
+      var distTotal = 800, distLeft = 800, timeLeft = 60, timeTotal = 60;
+      var fare = 12000, tip = 0, coinsThisOrder = 0;
+      var obstacles = [], pickups = [], rains = [];
+      var spawnT = 0, eventT = 14, event = null, eventLeft = 0, shake = 0, invuln = 0;
+      var roadOff = 0, keys = {}, gasHeld = false, muted = false;
+      var lastTs = 0, audioCtx = null;
+
+      function fmtRp(n) {
+        return "Rp " + n.toLocaleString("id-ID");
+      }
+      function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+      function rand(a, b) { return a + Math.random() * (b - a); }
+      function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+      function bestMoney() { return parseInt(localStorage.getItem(BEST_MONEY_KEY) || "0", 10); }
+      function bestRating() { return parseFloat(localStorage.getItem(BEST_RATING_KEY) || "0"); }
+      function refreshMenuBest() {
+        $("menuBest").textContent = fmtRp(bestMoney());
+        var br = bestRating();
+        $("menuBestRating").textContent = br > 0 ? br.toFixed(1) + " ⭐" : "–";
+      }
+      refreshMenuBest();
+
+      // ---------- audio (WebAudio, no files) ----------
+      function beep(freq, dur, type, vol) {
+        if (muted) return;
+        try {
+          audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+          o.type = type || "sine"; o.frequency.value = freq;
+          g.gain.value = vol || 0.08;
+          o.connect(g); g.connect(audioCtx.destination);
+          o.start(); o.stop(audioCtx.currentTime + dur);
+        } catch (e) {}
+      }
+      function sfx(name) {
+        if (name === "coin") { beep(880, 0.09, "sine", 0.07); setTimeout(function () { beep(1320, 0.12, "sine", 0.07); }, 70); }
+        else if (name === "crash") { beep(120, 0.25, "sawtooth", 0.12); }
+        else if (name === "fuel") { beep(520, 0.12, "triangle", 0.08); }
+        else if (name === "done") { beep(523, 0.12, "sine", 0.08); setTimeout(function () { beep(659, 0.12, "sine", 0.08); }, 110); setTimeout(function () { beep(784, 0.2, "sine", 0.08); }, 220); }
+        else if (name === "fail") { beep(220, 0.3, "sawtooth", 0.08); }
+      }
+
+      // ---------- orders ----------
+      function newOrder() {
+        var d = NAMES[(orderIdx + Math.floor(Math.random() * 3)) % NAMES.length];
+        // avoid repeating the same passenger twice in a row
+        if (orderIdx > 0 && d[1] === lastPassenger) d = NAMES[(orderIdx + 4) % NAMES.length];
+        lastPassenger = d[1];
+        distTotal = Math.round(rand(600, 1200));
+        distLeft = distTotal;
+        fare = Math.round((8000 + distTotal * 8) / 500) * 500;
+        timeTotal = Math.round(distTotal / 14) + 12; // ~14 m/s cruising
+        timeLeft = timeTotal;
+        tip = 0; coinsThisOrder = 0;
+        obstacles = []; pickups = []; event = null; eventLeft = 0; eventT = rand(10, 16);
+        spawnT = 0.4; speed = 0; fuel = Math.max(fuel, 55);
+        $("orderAvatar").textContent = d[0];
+        $("orderName").textContent = d[1] + " — Orderan " + (orderIdx + 1) + " dari 5";
+        $("orderRoute").textContent = "📍 " + d[2] + "  →  🏁 " + d[3] + "  •  " + distTotal + " m";
+        $("orderFare").textContent = fmtRp(fare);
+        $("orderTime").textContent = "⏱ " + timeTotal + " dtk";
+        $("orderNo").textContent = (orderIdx + 1) + " / 5";
+        updateHUD();
+      }
+      var lastPassenger = "";
+
+      function updateHUD() {
+        $("money").textContent = fmtRp(money);
+        $("rating").textContent = rating.toFixed(1);
+        $("fuelPct").textContent = Math.round(fuel) + "%";
+        var ff = $("fuelFill");
+        ff.style.width = clamp(fuel, 0, 100) + "%";
+        ff.className = fuel < 25 ? "low" : "";
+        ff.id = "fuelFill";
+        $("distLeft").textContent = Math.max(0, Math.round(distLeft)) + " m • " + Math.max(0, Math.ceil(timeLeft)) + " dtk";
+        $("distFill").style.width = clamp(100 * (1 - distLeft / distTotal), 0, 100) + "%";
+      }
+
+      function setEvent(name, seconds) {
+        event = name; eventLeft = seconds;
+        var b = $("eventBanner");
+        var label = { rain: "🌧️ Hujan! Jalan licin — belok pelan-pelan", jam: "🚗💨 Macet! Lalu lintas padat", holes: "🕳️ Jalan Rusak! Lubang di mana-mana", clear: "🍃 Jalan Lancar! Gaspol, tanpa rintangan" }[name] || "";
+        b.textContent = label;
+        b.classList.add("show");
+      }
+      function clearEvent() {
+        event = null; eventLeft = 0;
+        $("eventBanner").classList.remove("show");
+      }
+
+      // ---------- spawn ----------
+      function spawnObstacle() {
+        var lane = Math.floor(Math.random() * 3);
+        // don't fully block the road: if two lanes already have a car near the top, use the free one
+        var nearTop = obstacles.filter(function (o) { return o.y < 140; }).map(function (o) { return o.lane; });
+        if (nearTop.length >= 2) {
+          for (var l = 0; l < 3; l++) if (nearTop.indexOf(l) === -1) { lane = l; break; }
+        }
+        var r = Math.random();
+        var kind;
+        if (event === "holes") kind = r < 0.55 ? "hole" : (r < 0.8 ? "car" : "angkot");
+        else if (r < 0.45) kind = "car";
+        else if (r < 0.65) kind = "angkot";
+        else if (r < 0.8) kind = "truck";
+        else kind = "hole";
+        var size = kind === "truck" ? { w: 62, h: 96 } : kind === "hole" ? { w: 44, h: 30 } : { w: 52, h: 74 };
+        obstacles.push({
+          lane: lane, x: LANES[lane], y: -90, kind: kind,
+          w: size.w, h: size.h,
+          vy: kind === "truck" ? rand(28, 42) : kind === "angkot" ? rand(35, 55) : rand(42, 66),
+          emoji: kind === "car" ? pick(["🚗", "🚕", "🚙"]) : kind === "truck" ? "🚚" : kind === "angkot" ? "🚌" : "🕳️"
+        });
+      }
+      function spawnPickup() {
+        var lane = Math.floor(Math.random() * 3);
+        var kind = Math.random() < 0.62 ? "coin" : "fuel";
+        pickups.push({ lane: lane, x: LANES[lane], y: -40, kind: kind, vy: 50, emoji: kind === "coin" ? "🪙" : "⛽" });
+      }
+
+      // ---------- flow ----------
+      function startShift() {
+        money = 0; rating = 5.0; orderIdx = 0; ordersDone = 0; crashes = 0; fuel = 100;
+        playerLane = 1; playerX = LANES[1];
+        $("menuOverlay").classList.add("hidden");
+        $("endOverlay").classList.add("hidden");
+        $("orderOverlay").classList.add("hidden");
+        newOrder();
+        state = "playing";
+        lastTs = performance.now();
+      }
+      function completeOrder() {
+        state = "orderDone";
+        var timeRatio = timeLeft / timeTotal;
+        tip = timeRatio > 0.4 ? 2000 : timeRatio > 0.2 ? 1000 : 0;
+        var perfect = crashes === 0;
+        var earned = fare + tip + coinsThisOrder * 500;
+        money += earned;
+        if (perfect && rating < 5) rating = Math.min(5, rating + 0.1);
+        ordersDone++;
+        sfx("done");
+        $("orderEmoji").textContent = "✅";
+        $("orderTitle").textContent = "Sampai Tujuan!";
+        $("orderDetail").textContent = "Penumpang turun dengan senyum. Tarif " + fmtRp(fare) +
+          (tip ? " + tip " + fmtRp(tip) + " (cepat!)" : " (tanpa tip — lain kali lebih ngebut ya)") +
+          (coinsThisOrder ? " + " + coinsThisOrder + " koin." : ".") +
+          (perfect ? " Tanpa tabrakan sama sekali, rating naik!" : "");
+        $("orderScore").textContent = "+" + fmtRp(earned) + "  •  Total: " + fmtRp(money);
+        $("nextBtn").textContent = orderIdx + 1 >= 5 ? "Lihat Hasil Shift 🏁" : "Order Berikutnya ➤";
+        $("orderOverlay").classList.remove("hidden");
+        updateHUD();
+      }
+      function failOrder(reason) {
+        state = "orderDone";
+        rating = Math.max(1, rating - 0.5);
+        sfx("fail");
+        $("orderEmoji").textContent = "😖";
+        $("orderTitle").textContent = "Orderan Gagal";
+        $("orderDetail").textContent = reason + " Penumpang batal, rating turun 0.5. Tenang, orderan berikutnya masih ada.";
+        $("orderScore").textContent = "Total tetap: " + fmtRp(money);
+        $("nextBtn").textContent = orderIdx + 1 >= 5 ? "Lihat Hasil Shift 🏁" : "Order Berikutnya ➤";
+        $("orderOverlay").classList.remove("hidden");
+        updateHUD();
+      }
+      function endShift() {
+        state = "over";
+        clearEvent();
+        var bestM = bestMoney(), bestR = bestRating();
+        var newBest = money > bestM;
+        if (newBest) localStorage.setItem(BEST_MONEY_KEY, String(money));
+        if (rating > bestR) localStorage.setItem(BEST_RATING_KEY, String(rating.toFixed(1)));
+        var title = money >= 60000 ? "Juragan Ojol! 🏆" : money >= 40000 ? "Driver Andal! 💪" : money >= 20000 ? "Lumayan, Bang! 🙂" : "Shift Berat 😅";
+        $("endTitle").textContent = title;
+        $("endDetail").textContent = "5 orderan selesai. " + ordersDone + " berhasil diantar, " + crashes + " tabrakan. Rating akhir " + rating.toFixed(1) + " ⭐.";
+        $("endScore").textContent = "💰 Total uang: " + fmtRp(money);
+        $("endBest").textContent = newBest
+          ? "🎉 Rekor baru! Uang terbanyak sebelumnya " + fmtRp(bestM) + "."
+          : "🏆 Rekor uang terbanyakmu: " + fmtRp(Math.max(bestM, money)) + ".";
+        $("endOverlay").classList.remove("hidden");
+        refreshMenuBest();
+      }
+
+      // ---------- update ----------
+      function update(dt) {
+        if (state !== "playing") return;
+        // input
+        var wantGas = gasHeld || keys["ArrowUp"] || keys["w"] || keys["W"];
+        var wantBrake = keys["ArrowDown"] || keys["s"] || keys["S"];
+        var target = wantGas ? 92 : wantBrake ? 18 : 58;
+        speed += (target - speed) * Math.min(1, dt * 1.4);
+        if (fuel <= 0) speed = Math.min(speed, 15);
+
+        // steering
+        var steerSpeed = event === "rain" ? 2.6 : 4.2;
+        var tx = LANES[playerLane];
+        playerX += (tx - playerX) * Math.min(1, dt * steerSpeed);
+        roadOff += speed * dt * 2.2;
+
+        // distance + time + fuel
+        var ms = speed / 3.6;
+        distLeft -= ms * dt;
+        timeLeft -= dt;
+        fuel -= (0.55 + speed / 110) * dt;
+        if (fuel < 0) fuel = 0;
+
+        // events
+        eventT -= dt;
+        if (event) {
+          eventLeft -= dt;
+          if (eventLeft <= 0) clearEvent();
+        } else if (eventT <= 0) {
+          setEvent(pick(["rain", "jam", "holes", "clear"]), rand(6, 9));
+          eventT = rand(13, 18);
+        }
+
+        // spawn
+        spawnT -= dt;
+        var interval = event === "jam" ? 0.55 : event === "clear" ? 999 : clamp(1.15 - orderIdx * 0.1 - speed / 220, 0.5, 1.15);
+        if (spawnT <= 0 && event !== "clear") { spawnObstacle(); spawnT = interval * rand(0.8, 1.25); }
+        if (Math.random() < dt * 0.55) spawnPickup();
+
+        // rain drops (visual only)
+        if (event === "rain" && Math.random() < dt * 30) {
+          rains.push({ x: rand(0, W), y: -10, vy: rand(300, 460) });
+        }
+        for (var i = rains.length - 1; i >= 0; i--) {
+          rains[i].y += rains[i].vy * dt;
+          if (rains[i].y > H) rains.splice(i, 1);
+        }
+
+        // move obstacles / pickups
+        var rel = 60 + speed * 1.9; // road scroll speed
+        for (var j = obstacles.length - 1; j >= 0; j--) {
+          var o = obstacles[j];
+          o.y += (rel - o.vy) * dt;
+          if (o.y > H + 120) obstacles.splice(j, 1);
+        }
+        for (var k = pickups.length - 1; k >= 0; k--) {
+          var p = pickups[k];
+          p.y += rel * dt;
+          if (p.y > H + 60) pickups.splice(k, 1);
+        }
+
+        // collisions
+        if (invuln > 0) invuln -= dt;
+        if (shake > 0) shake -= dt * 3;
+        for (var m = obstacles.length - 1; m >= 0; m--) {
+          var ob = obstacles[m];
+          if (Math.abs(ob.y - playerY) < (ob.h / 2 + 26) && Math.abs(ob.x - playerX) < (ob.w / 2 + 20)) {
+            obstacles.splice(m, 1);
+            if (invuln <= 0) {
+              crashes++;
+              rating = Math.max(1, rating - 0.3);
+              fuel = Math.max(0, fuel - 10);
+              speed = Math.max(18, speed * 0.45);
+              shake = 1; invuln = 1.5;
+              sfx("crash");
+              if (navigator.vibrate) navigator.vibrate(120);
+            }
+          }
+        }
+        for (var n = pickups.length - 1; n >= 0; n--) {
+          var pk = pickups[n];
+          if (Math.abs(pk.y - playerY) < 42 && Math.abs(pk.x - playerX) < 34) {
+            pickups.splice(n, 1);
+            if (pk.kind === "coin") { coinsThisOrder++; sfx("coin"); }
+            else { fuel = Math.min(100, fuel + 25); sfx("fuel"); }
+          }
+        }
+
+        // end conditions
+        if (distLeft <= 0) { distLeft = 0; updateHUD(); completeOrder(); return; }
+        if (timeLeft <= 0) { timeLeft = 0; updateHUD(); failOrder("⏰ Waktu habis sebelum sampai tujuan."); return; }
+        if (fuel <= 0) { updateHUD(); failOrder("⛽ Bensin habis — motor mogok di tengah jalan."); return; }
+        updateHUD();
+      }
+
+      // ---------- draw ----------
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.save();
+        if (shake > 0) ctx.translate(rand(-4, 4) * shake, rand(-4, 4) * shake);
+
+        // grass / sidewalk
+        ctx.fillStyle = event === "rain" ? "#22331f" : "#2c5d34";
+        ctx.fillRect(0, 0, W, H);
+        // road
+        ctx.fillStyle = "#33383f";
+        ctx.fillRect(28, 0, W - 56, H);
+        ctx.fillStyle = "#3d444d";
+        ctx.fillRect(28, 0, 6, H); ctx.fillRect(W - 34, 0, 6, H);
+        // lane dashes
+        ctx.fillStyle = "#f5d76e";
+        var off = roadOff % 46;
+        for (var y = -46 + off; y < H; y += 46) {
+          ctx.fillRect(118, y, 4, 26);
+          ctx.fillRect(238, y, 4, 26);
+        }
+        // side objects: trees / houses scrolling
+        ctx.font = "26px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        var objOff = roadOff % 170;
+        for (var k = -1; k < 4; k++) {
+          var oy = k * 170 + objOff - 40;
+          ctx.fillText(k % 2 === 0 ? "🌳" : "🏠", 12, oy);
+          ctx.fillText(k % 2 === 0 ? "🏪" : "🌳", W - 12, oy + 80);
+        }
+
+        // pickups
+        pickups.forEach(function (p) {
+          ctx.font = p.kind === "coin" ? "26px serif" : "30px serif";
+          ctx.fillText(p.emoji, p.x, p.y);
+        });
+        // obstacles
+        obstacles.forEach(function (o) {
+          ctx.font = o.kind === "hole" ? "30px serif" : o.kind === "truck" ? "52px serif" : "44px serif";
+          ctx.fillText(o.emoji, o.x, o.y);
+          if (o.kind === "angkot") {
+            ctx.font = "11px sans-serif"; ctx.fillStyle = "#fff";
+            ctx.fillText("ANGKOT", o.x, o.y - 30);
+            ctx.fillStyle = "#000";
+          }
+        });
+
+        // player (blink while invulnerable)
+        if (!(invuln > 0 && Math.floor(invuln * 10) % 2 === 0)) {
+          ctx.font = "46px serif";
+          ctx.fillText("🛵", playerX, playerY);
+          ctx.font = "bold 11px sans-serif";
+          ctx.fillStyle = "#fff";
+          ctx.fillText("KAMU", playerX, playerY - 34);
+        }
+        // rain
+        if (event === "rain") {
+          ctx.strokeStyle = "rgba(180,210,255,0.55)"; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          rains.forEach(function (r) { ctx.moveTo(r.x, r.y); ctx.lineTo(r.x - 4, r.y + 14); });
+          ctx.stroke();
+          ctx.fillStyle = "rgba(20,40,70,0.18)";
+          ctx.fillRect(0, 0, W, H);
+        }
+        ctx.restore();
+
+        // speed + time readout on canvas
+        ctx.fillStyle = "rgba(11,21,38,0.75)";
+        ctx.beginPath(); ctx.roundRect(10, 10, 108, 34, 10); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "bold 15px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText("💨 " + Math.round(speed) + " km/j", 20, 28);
+        ctx.fillStyle = timeLeft < 10 ? "#ff4d5e" : "#fff";
+        ctx.textAlign = "right";
+        ctx.fillText("⏱ " + Math.max(0, Math.ceil(timeLeft)) + " dtk", W - 14, 28);
+      }
+
+      function loop(ts) {
+        var dt = Math.min(0.05, (ts - lastTs) / 1000 || 0.016);
+        lastTs = ts;
+        if (state === "playing") update(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(function (ts) { lastTs = ts; requestAnimationFrame(loop); });
+
+      // ---------- input ----------
+      function moveLane(dir) {
+        if (state !== "playing") return;
+        playerLane = clamp(playerLane + dir, 0, 2);
+        beep(440, 0.05, "sine", 0.04);
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") { moveLane(-1); e.preventDefault(); }
+        else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { moveLane(1); e.preventDefault(); }
+        else if (e.key === " ") {
+          e.preventDefault();
+          if (state === "menu") startShift();
+          else if (state === "orderDone") $("nextBtn").click();
+          else if (state === "over") startShift();
+        } else if (e.key === "p" || e.key === "P") {
+          if (state === "playing") { state = "paused"; $("eventBanner").textContent = "⏸ Jeda — tekan P lagi untuk lanjut"; $("eventBanner").classList.add("show"); }
+          else if (state === "paused") { state = "playing"; clearEvent(); }
+        }
+        keys[e.key] = true;
+        if (["ArrowUp", "ArrowDown", " "].indexOf(e.key) !== -1) e.preventDefault();
+      });
+      document.addEventListener("keyup", function (e) { keys[e.key] = false; });
+
+      function holdBtn(el, on, off) {
+        var start = function (e) { e.preventDefault(); el.classList.add("on"); on(); };
+        var end = function (e) { e.preventDefault(); el.classList.remove("on"); if (off) off(); };
+        el.addEventListener("pointerdown", start);
+        el.addEventListener("pointerup", end);
+        el.addEventListener("pointerleave", end);
+        el.addEventListener("pointercancel", end);
+      }
+      holdBtn($("leftBtn"), function () { moveLane(-1); });
+      holdBtn($("rightBtn"), function () { moveLane(1); });
+      holdBtn($("gasBtn"), function () { gasHeld = true; }, function () { gasHeld = false; });
+
+      // swipe on canvas to change lane
+      var touchX = null;
+      canvas.addEventListener("touchstart", function (e) { touchX = e.touches[0].clientX; e.preventDefault(); }, { passive: false });
+      canvas.addEventListener("touchend", function (e) {
+        if (touchX === null) return;
+        var dx = e.changedTouches[0].clientX - touchX;
+        if (dx > 30) moveLane(1); else if (dx < -30) moveLane(-1);
+        touchX = null;
+      });
+
+      // ---------- buttons ----------
+      $("startBtn").addEventListener("click", startShift);
+      $("againBtn").addEventListener("click", startShift);
+      $("muteBtn").addEventListener("click", function () {
+        muted = !muted;
+        this.textContent = muted ? "🔇 Suara: Mati" : "🔊 Suara: Nyala";
+      });
+      $("howBtn").addEventListener("click", function () {
+        document.getElementById("howto").scrollIntoView({ behavior: "smooth" });
+      });
+      $("nextBtn").addEventListener("click", function () {
+        $("orderOverlay").classList.add("hidden");
+        orderIdx++;
+        if (orderIdx >= 5) { endShift(); return; }
+        newOrder();
+        state = "playing";
+      });
+      $("shareBtn").addEventListener("click", function () {
+        var text = "🛵 Gue dapet " + fmtRp(money) + " dalam 1 shift jadi driver ojol di Ojek Simulator! Rating " + rating.toFixed(1) + "⭐, " + ordersDone + "/5 orderan berhasil. Coba kalahin gue: https://getdebug.vercel.app/ojek-simulator/";
+        var btn = this;
+        if (navigator.share) {
+          navigator.share({ title: "Ojek Simulator — Tara Tech", text: text }).catch(function () {});
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(function () {
+            btn.textContent = "Disalin!";
+            setTimeout(function () { btn.textContent = "Bagikan Skor"; }, 2000);
+          });
+        }
+      });
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js").catch(function () {});
+        });
+      }
+      updateHUD();
+    })();
+  </script>
+</body>
+</html>
