@@ -12,6 +12,23 @@ langsung di-deploy ke mana saja.
 - `jangan-typo/index.html` — game Jangan Typo!
 - `manifest.webmanifest` + `sw.js` + `icons/` — dukungan PWA
   (bisa diinstall di HP, main offline).
+- `vendor/three/` — **Three.js 0.187.0** (ES module, di-vendor ke repo,
+  tanpa npm/build step) + `assets/js/` — efek 3D: latar hero interaktif
+  di landing page dan ledakan partikel 3D di Tangkap Bug.
+
+## Efek 3D (Three.js)
+
+- **Landing page:** latar 3D di belakang konten — bentuk geometri warna
+  brand (biru/emas/hijau) yang melayang dan berputar, mengikuti gerakan
+  kursor; ketuk/klik layar memunculkan ledakan partikel. Kartu game
+  miring 3D mengikuti kursor (mouse/trackpad saja).
+- **Tangkap Bug!:** setiap tangkapan memunculkan ledakan partikel 3D
+  di posisi lubang — biru (+1), emas (+5), merah (−2).
+- Semua efek gagal dengan aman (*fail-soft*): kalau WebGL tidak tersedia
+  atau `prefers-reduced-motion` aktif, game tetap jalan normal tanpa 3D.
+  Renderer Three.js di-vendor lokal, jadi efek 3D ikut ter-cache service
+  worker dan tetap jalan offline — tidak ada CDN.
+- Detail versi & cara upgrade: `vendor/three/README.md`.
 
 ## Game
 

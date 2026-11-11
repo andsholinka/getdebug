@@ -12,6 +12,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Arcade" />
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/three.module.js" } }
+  </script>
   <style>
     :root {
       --navy: #0f1e33;
@@ -170,6 +173,7 @@
     </div>
   </div>
 
+  <script type="module" src="/assets/js/burst-3d.js"></script>
   <script>
     var GAME_TIME = 30;
     var grid = document.getElementById("grid");
@@ -239,6 +243,12 @@
       setTimeout(function () { pop.remove(); }, 700);
     }
 
+    function burstAt(hole, color, count) {
+      if (!window.ArcadeBurst) return;
+      var r = hole.getBoundingClientRect();
+      window.ArcadeBurst.burst(r.left + r.width / 2, r.top + r.height / 2, color, count);
+    }
+
     function onHoleHit(e) {
       if (!playing) return;
       var hole = e.currentTarget;
@@ -248,9 +258,9 @@
         return;
       }
       var kind = hole.dataset.kind;
-      if (kind === "gold") { score += 5; streak++; popText(hole, "+5"); }
-      else if (kind === "bad") { score = Math.max(0, score - 2); streak = 0; popText(hole, "−2", true); }
-      else { score += 1; streak++; popText(hole, "+1"); }
+      if (kind === "gold") { score += 5; streak++; popText(hole, "+5"); burstAt(hole, 0xffc531, 30); }
+      else if (kind === "bad") { score = Math.max(0, score - 2); streak = 0; popText(hole, "−2", true); burstAt(hole, 0xff4d5e, 18); }
+      else { score += 1; streak++; popText(hole, "+1"); burstAt(hole, 0x2f7bff, 22); }
       scoreEl.textContent = score;
       if (streak >= 5) { streakEl.textContent = "🔥 " + streak + "x beruntun!"; }
       else { streakEl.textContent = ""; }
