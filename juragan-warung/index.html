@@ -65,6 +65,30 @@
       margin-bottom: 12px;
     }
     .warung-title { text-align: center; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px; color: var(--gold); }
+    .scene-wrap {
+      position: relative; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--line); background: #87ceeb;
+    }
+    #scene3d { display: block; width: 100%; height: 340px; touch-action: manipulation; }
+    #bubbles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+    .bubble {
+      position: absolute; transform: translate(-50%, -100%); display: none;
+      background: #fff; color: #111; border-radius: 12px; padding: 5px 9px;
+      font-size: 12px; font-weight: 800; white-space: nowrap; z-index: 3;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    }
+    .bubble small { display: block; font-size: 10px; color: #555; font-weight: 600; }
+    .bubble .pat { height: 4px; background: #e5e5e5; border-radius: 999px; overflow: hidden; margin-top: 3px; }
+    .bubble .pat > div { height: 100%; background: var(--green); }
+    .bubble .pat > div.low { background: var(--danger); }
+    .bubble.vip { border: 2px solid var(--gold); }
+    .bubble.sel { outline: 3px solid var(--gold); }
+    .scene-hint {
+      position: absolute; left: 8px; bottom: 8px; z-index: 3;
+      background: rgba(11, 21, 38, 0.8); color: #fff; border-radius: 999px;
+      padding: 5px 10px; font-size: 11px; font-weight: 700; pointer-events: none;
+    }
+    #fallbackWrap { padding: 12px; background: linear-gradient(180deg, #1a2f52, #13233f); }
     .seats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .seat {
       background: var(--navy); border: 2px solid var(--line); border-radius: 16px;
@@ -175,7 +199,12 @@
 
     <div class="warung">
       <div class="warung-title">🍜 WARUNG BERKAH — BUKA! 🍜</div>
-      <div class="seats" id="seats"></div>
+      <div class="scene-wrap" id="sceneWrap">
+        <canvas id="scene3d" style="display:none"></canvas>
+        <div id="bubbles"></div>
+        <div class="scene-hint" id="sceneHint" style="display:none">👆 Ketuk pelanggan · gerakkan juragan: ketuk tanah / WASD</div>
+        <div id="fallbackWrap"><div class="seats" id="seats"></div></div>
+      </div>
     </div>
 
     <div class="menu-label">👆 1. Ketuk pelanggan &nbsp;·&nbsp; 2. Ketuk menunya buat menyajikan</div>
@@ -217,7 +246,8 @@
       <h2>Juragan Warung! 🏪</h2>
       <p>Kamu juragan warung selama <b>3 hari</b> (07.00–21.00 tiap hari). Layani pelanggan secepat dan setepat mungkin!</p>
       <div class="rules">
-        <div>👆 Ketuk <b>pelanggan</b>, lalu ketuk <b>menu</b> yang dia pesan.</div>
+        <div>👆 Ketuk <b>pelanggan</b> di kampung, lalu ketuk <b>menu</b> yang dia pesan (bubble di atas kepalanya).</div>
+        <div>🚶 Juragan bisa jalan: ketuk tanah atau pakai <b>WASD / panah</b>.</div>
         <div>✅ Pesanan benar = <b>+uang, +reputasi</b>. ❌ Salah / kelamaan = pelanggan kabur, reputasi turun.</div>
         <div>⚡ Tiap sajian −4 energi. Energi habis = makan / istirahat dulu.</div>
         <div>📦 Stok habis = tidak bisa jualan. Belanja sebelum ramai!</div>
@@ -254,6 +284,23 @@
   </div>
 
   <script type="module" src="/assets/js/burst-3d.js"></script>
+  <script type="module">
+    import { initWarung3D } from "/assets/js/warung-3d.js";
+    try {
+      const api = initWarung3D(document.getElementById("scene3d"), {
+        onSelect: function (i) { if (window.selectSeat) window.selectSeat(i); },
+        getBubble: function (i) { return document.getElementById("bubble-" + i); }
+      });
+      if (api) window.dispatchEvent(new CustomEvent("warung3d-ready"));
+      else {
+        document.getElementById("scene3d").style.display = "none";
+        document.getElementById("fallbackWrap").style.display = "block";
+      }
+    } catch (e) {
+      document.getElementById("scene3d").style.display = "none";
+      document.getElementById("fallbackWrap").style.display = "block";
+    }
+  </script>
   <script>
     var MENU = [
       { id: "pecel",  emoji: "🍛", name: "Nasi Pecel", price: 10000, cost: 4000 },
@@ -277,6 +324,20 @@
         toastEl = $("toast"), seatsEl = $("seats"), menuEl = $("menu"), logEl = $("log");
 
     var state, timer = null, spawnIn = 2, toastTimer = null, soundOn = true, audioCtx = null;
+    var use3d = false;
+    function is3d() { return use3d && window.Warung3D && window.Warung3D.ready; }
+    window.addEventListener("warung3d-ready", function () {
+      use3d = true;
+      $("scene3d").style.display = "block";
+      $("fallbackWrap").style.display = "none";
+      $("sceneHint").style.display = "block";
+      if (state && state.customers) {
+        state.customers.forEach(function (c, i) {
+          if (c) window.Warung3D.spawn(i, { vip: c.vip, colorIndex: i * 2 + 1 });
+        });
+      }
+      render();
+    });
 
     function fmtRp(n) { return "Rp" + Math.round(n / 1000) + "rb"; }
     function fmtRpFull(n) { return "Rp" + n.toLocaleString("id-ID"); }
@@ -385,7 +446,29 @@
       missionEl.classList.toggle("done", state.missionDone);
       missionEl.innerHTML = "🎯 <b>Misi hari " + state.day + ":</b> " + mission.text + " — hadiah " + fmtRp(mission.reward) +
         ' <span id="missionProg">(' + mission.prog(state) + ")</span>" + (state.missionDone ? " ✅ Selesai!" : "");
-      // seats
+      // seats: 3D village (order bubbles over walking customers) or emoji fallback
+      if (is3d()) {
+        window.Warung3D.select(state.selected);
+        window.Warung3D.setDayProgress(state.dayTime / DAY_LENGTH);
+        var bubblesEl = $("bubbles");
+        state.customers.forEach(function (c, i) {
+          var b = $("bubble-" + i);
+          if (!c) { if (b) b.remove(); return; }
+          if (!b) {
+            b = document.createElement("div");
+            b.id = "bubble-" + i;
+            b.className = "bubble";
+            bubblesEl.appendChild(b);
+          }
+          b.classList.toggle("vip", !!c.vip);
+          b.classList.toggle("sel", state.selected === i);
+          var pct = Math.max(0, c.patience / c.maxPatience * 100);
+          b.innerHTML = c.order.emoji + " " + c.order.name +
+            "<small>" + (c.vip ? "👑 VIP · bayar 2x!" : "Sabar ya…") + "</small>" +
+            '<div class="pat"><div class="' + (pct <= 30 ? "low" : "") + '" style="width:' + pct + '%"></div></div>';
+        });
+        return;
+      }
       state.customers.forEach(function (c, i) {
         var seat = $("seat-" + i);
         if (!seat) return;
@@ -416,6 +499,7 @@
         emoji: CUSTOMERS[Math.floor(Math.random() * CUSTOMERS.length)],
         order: randomOrder(), vip: vip, patience: patience, maxPatience: patience
       };
+      if (is3d()) window.Warung3D.spawn(idx, { vip: vip, colorIndex: idx * 2 + 1 });
       beep(520, 0.08);
       render();
     }
@@ -429,10 +513,18 @@
 
     function burstAtSeat(i, color) {
       if (!window.ArcadeBurst) return;
+      if (is3d()) {
+        var p = window.Warung3D.project(i);
+        if (p) {
+          var r = $("scene3d").getBoundingClientRect();
+          window.ArcadeBurst.burst(r.left + p.x, r.top + p.y, color, 22);
+        }
+        return;
+      }
       var seat = $("seat-" + i);
       if (!seat) return;
-      var r = seat.getBoundingClientRect();
-      window.ArcadeBurst.burst(r.left + r.width / 2, r.top + r.height / 2, color, 22);
+      var r2 = seat.getBoundingClientRect();
+      window.ArcadeBurst.burst(r2.left + r2.width / 2, r2.top + r2.height / 2, color, 22);
     }
 
     function serve(menuId) {
@@ -443,6 +535,7 @@
       if (state.stock[menuId] <= 0) { toast("📦 Stok " + m.name + " habis! Belanja dulu."); badSound(); return; }
       var idx = state.selected, c = state.customers[idx];
       if (m.id !== c.order.id) {
+        if (is3d()) window.Warung3D.leave(idx, false);
         state.customers[idx] = null; state.selected = -1;
         state.rep = Math.max(0, state.rep - 0.2);
         state.lostToday++; state.totalLost++;
@@ -463,6 +556,7 @@
       log("Pelanggan puas! +" + fmtRp(price) + " · Reputasi " + state.rep.toFixed(1) + "★");
       burstAtSeat(idx, c.vip ? 0xffc531 : 0x3ddc84);
       coinSound();
+      if (is3d()) window.Warung3D.leave(idx, true);
       state.customers[idx] = null; state.selected = -1;
       checkMission();
       render();
@@ -493,6 +587,7 @@
     function endDay() {
       state.playing = false;
       clearInterval(timer); timer = null;
+      if (is3d()) window.Warung3D.clearAll();
       state.customers = [null, null, null]; state.selected = -1;
       var interest = Math.floor(state.bank * 0.10);
       state.bank += interest;
@@ -550,6 +645,7 @@
         c.patience -= 0.2;
         changed = true;
         if (c.patience <= 0) {
+          if (is3d()) window.Warung3D.leave(i, false);
           state.customers[i] = null;
           if (state.selected === i) state.selected = -1;
           state.rep = Math.max(0, state.rep - 0.2);
@@ -565,6 +661,7 @@
 
     function startGame() {
       state = newState();
+      if (is3d()) window.Warung3D.clearAll();
       buildSeats(); buildMenu(); buildShop();
       spawnIn = 1.5;
       state.playing = true;
