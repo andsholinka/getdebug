@@ -58,6 +58,11 @@ Simulator — bukan salinan game/asetnya): jadi juragan warung selama 3 hari
   (layani 6 pelanggan / dapat Rp100rb / jaga reputasi ≥ 4,0) dengan bonus.
   Skor akhir = uang + tabungan + reputasi + pelanggan dilayani; skor terbaik
   tersimpan di browser. Ledakan partikel 3D (Three.js) tiap sajian benar.
+  Tampilan v2: kampung isometrik 3D (`assets/js/warung-3d.js`, kamera
+  ortografik Three.js) — warung, rumah, pohon, lapak pasar, jalan, dan orang
+  yang jalan kaki masuk–duduk–pesan–keluar; juragan bisa digerakkan (ketuk
+  tanah atau WASD/panah); bubble pesanan melayang di atas kepala pelanggan.
+  Kalau WebGL tidak tersedia, game otomatis pakai tampilan emoji lama.
 
 ## PWA (install di HP)
 
